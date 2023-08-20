@@ -13,6 +13,7 @@
 // #include "Smol.h"
 #include "SmolISelDAGToDAG.h"
 #include "SmolMachineFunction.h"
+#include "SmolSubtarget.h"
 #include "SmolTargetObjectFile.h"
 #include "TargetInfo/SmolTargetInfo.h"
 #include "llvm/CodeGen/Passes.h"
@@ -50,6 +51,29 @@ MachineFunctionInfo *SmolTargetMachine::createMachineFunctionInfo(
     BumpPtrAllocator &Allocator, const Function &F,
     const TargetSubtargetInfo *STI) const {
   return SmolFunctionInfo::create<SmolFunctionInfo>(Allocator, F, STI);
+}
+
+const SmolSubtarget *
+SmolTargetMachine::getSubtargetImpl(const Function &F) const {
+  Attribute CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute FSAttr = F.getFnAttribute("target-features");
+
+  std::string CPU = !CPUAttr.hasAttribute(Attribute::None)
+                        ? CPUAttr.getValueAsString().str()
+                        : TargetCPU;
+  std::string FS = !FSAttr.hasAttribute(Attribute::None)
+                       ? FSAttr.getValueAsString().str()
+                       : TargetFS;
+
+  auto &I = SubtargetMap[CPU + FS];
+  if (!I) {
+    // This needs to be done before we create a new subtarget since any
+    // creation will depend on the TM and the code generation flags on the
+    // function that reside in TargetOptions.
+    resetTargetOptions(F);
+    I = std::make_unique<SmolSubtarget>(TargetTriple, CPU, FS, *this);
+  }
+  return I.get();
 }
 
 namespace {

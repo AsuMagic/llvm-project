@@ -14,6 +14,7 @@
 #define LLVM_LIB_TARGET_SMOL_SPARCTARGETMACHINE_H
 
 #include "SmolInstrInfo.h"
+#include "SmolSubtarget.h"
 #include "llvm/Target/TargetMachine.h"
 #include <optional>
 
@@ -21,6 +22,7 @@ namespace llvm {
 
 class SmolTargetMachine : public LLVMTargetMachine {
   std::unique_ptr<TargetLoweringObjectFile> TLOF;
+  mutable StringMap<std::unique_ptr<SmolSubtarget>> SubtargetMap;
 
 public:
   SmolTargetMachine(const Target &T, const Triple &TT, StringRef CPU,
@@ -29,6 +31,10 @@ public:
                      std::optional<CodeModel::Model> CM, CodeGenOpt::Level OL,
                      bool JIT);
   ~SmolTargetMachine() override;
+
+  const SmolSubtarget *getSubtargetImpl(const Function &F) const override;
+  const SmolSubtarget *getSubtargetImpl() const = delete;
+
   // Pass Pipeline Configuration
   TargetPassConfig *createPassConfig(PassManagerBase &PM) override;
   TargetLoweringObjectFile *getObjFileLowering() const override {

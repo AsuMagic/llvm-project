@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 include "SmolInstrFormats.td"
-include "SmolRegisterInfo.td"
 
 def OPC_L8           : SmolOpcode<"L8",          0b00000000>;
 def OPC_L16          : SmolOpcode<"L16",         0b00000001>;

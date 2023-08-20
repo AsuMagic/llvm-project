@@ -13,7 +13,7 @@
 #include "SmolRegisterInfo.h"
 #include "Smol.h"
 #include "SmolFrameLowering.h"
-// #include "SmolMachineFunctionInfo.h"
+#include "SmolSubtarget.h"
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
@@ -30,8 +30,9 @@ using namespace llvm;
 #define GET_REGINFO_TARGET_DESC
 #include "SmolGenRegisterInfo.inc"
 
-SmolRegisterInfo::SmolRegisterInfo()
-  : SmolGenRegisterInfo(Smol::RRET, /*DwarfFlavor*/0, /*EHFlavor*/0, /*PC*/0)
+SmolRegisterInfo::SmolRegisterInfo(const SmolSubtarget& STI)
+  : SmolGenRegisterInfo(Smol::RRET, /*DwarfFlavor*/0, /*EHFlavor*/0, /*PC*/0),
+    Subtarget(STI)
 {}
 
 const MCPhysReg*

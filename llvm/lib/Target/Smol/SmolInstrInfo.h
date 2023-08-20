@@ -21,9 +21,14 @@
 
 namespace llvm {
 
+class SmolSubtarget;
+
 class SmolInstrInfo : public SmolGenInstrInfo {
 public:
-  explicit SmolInstrInfo();
+  explicit SmolInstrInfo(const SmolSubtarget &STI);
+
+protected:
+  const SmolSubtarget &Subtarget;
 };
 
 }

@@ -1,5 +1,7 @@
 #include "SmolInstrInfo.h"
 
+#include "SmolSubtarget.h"
+
 #define DEBUG_TYPE "riscw-instrinfo"
 
 #define GET_INSTRINFO_CTOR_DTOR
@@ -8,8 +10,9 @@
 namespace llvm
 {
 
-SmolInstrInfo::SmolInstrInfo()
-    : SmolGenInstrInfo()
+SmolInstrInfo::SmolInstrInfo(const SmolSubtarget &STI)
+    : SmolGenInstrInfo(),
+      Subtarget(STI)
 {
 }
 

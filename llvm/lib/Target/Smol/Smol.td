@@ -20,6 +20,7 @@ include "llvm/Target/Target.td"
 //===----------------------------------------------------------------------===//
 
 // include "SmolSchedule.td"
+include "SmolRegisterInfo.td"
 include "SmolInstrInfo.td"
 include "SmolCallingConv.td"
 

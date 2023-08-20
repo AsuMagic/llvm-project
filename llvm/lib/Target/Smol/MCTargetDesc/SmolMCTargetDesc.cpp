@@ -51,8 +51,7 @@ createSmolMCSubtargetInfo(const Triple &TT, StringRef CPU, StringRef FS) {
   // if (CPUName.empty())
   //   CPUName = "generic";
   std::string CPUName = "generic";
-  //   return createSmolMCSubtargetInfoImpl(TT, CPUName, FS);
-  return nullptr;
+  return createSmolMCSubtargetInfoImpl(TT, CPUName, /*TuneCPU*/ CPUName, FS);
 }
 
 static MCInstPrinter *createSmolMCInstPrinter(const Triple &T,
@@ -85,6 +84,9 @@ extern "C" void LLVMInitializeSmolTargetMC() {
 
     // Register the MC register info.
     TargetRegistry::RegisterMCRegInfo(*T, createSmolMCRegisterInfo);
+
+    // Register the MC subtarget info.
+    TargetRegistry::RegisterMCSubtargetInfo(*T, createSmolMCSubtargetInfo);
 
     // Register the MC subtarget info.
     TargetRegistry::RegisterMCSubtargetInfo(*T, createSmolMCSubtargetInfo);

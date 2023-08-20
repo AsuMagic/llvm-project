@@ -18,13 +18,16 @@
 
 namespace llvm {
 
+class SmolSubtarget;
+
 class SmolFrameLowering : public TargetFrameLowering {
 public:
-  explicit SmolFrameLowering()
+  explicit SmolFrameLowering(const SmolSubtarget &STI)
     : TargetFrameLowering(TargetFrameLowering::StackGrowsDown,
                           /*StackAlignment*/Align(4),
                           /*LocalAreaOffset*/0,
-                          /*TransAl*/Align(4))
+                          /*TransAl*/Align(4)),
+      Subtarget(STI)
     {}
 
   void emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
@@ -39,6 +42,9 @@ public:
                             RegScavenger *RS) const override;
 
   bool hasFP(const MachineFunction &MF) const override;
+
+protected:
+  const SmolSubtarget& Subtarget;
 };
 } // llvm namespace
 

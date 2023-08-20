@@ -19,8 +19,11 @@
 #include "SmolGenRegisterInfo.inc"
 
 namespace llvm {
+
+class SmolSubtarget;
+
 struct SmolRegisterInfo : public SmolGenRegisterInfo {
-  SmolRegisterInfo();
+  SmolRegisterInfo(const SmolSubtarget& STI);
 
   /// Code Generation virtual methods...
   const MCPhysReg *getCalleeSavedRegs(const MachineFunction *MF) const override;
@@ -45,6 +48,9 @@ struct SmolRegisterInfo : public SmolGenRegisterInfo {
   Register getFrameRegister(const MachineFunction &MF) const override;
 
   const TargetRegisterClass *intRegClass(unsigned Size) const;
+
+  protected:
+  const SmolSubtarget& Subtarget;
 };
 
 } // end namespace llvm

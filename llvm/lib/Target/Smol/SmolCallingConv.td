@@ -10,11 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-// TODO: do it all
-
-def CC_Smol32 : CallingConv<[
-  // Custom assign SRet to [sp+64].
-  CCIfSRet<CCCustom<"CC_Smol_Assign_SRet">>,
+def CC_Smol : CallingConv<[
+  CCIfByVal<CCPassByVal<4, 4>>,
+  CCIfType<[i1, i8, i16], CCPromoteToType<i32>>,
   // i32 arguments get passed in integer registers if there is space.
   CCIfType<[i32], CCAssignToReg<[R0, R1, R2, R3, R4, R5, R6]>>,
   // Alternatively, they are assigned to the stack in 4-byte aligned units.

@@ -18,12 +18,12 @@ add_llvm_target(SmolCodeGen
   SmolAsmPrinter.cpp
   SmolInstrInfo.cpp
   SmolISelDAGToDAG.cpp
-  # SmolISelLowering.cpp
+  SmolISelLowering.cpp
   SmolFrameLowering.cpp
   SmolRegisterInfo.cpp
   SmolTargetMachine.cpp
-  # SmolMCInstLower.cpp
   SmolTargetObjectFile.cpp
+  SmolSubtarget.cpp
 
   LINK_COMPONENTS
   AsmPrinter
@@ -40,7 +40,7 @@ add_llvm_target(SmolCodeGen
 
   ADD_TO_COMPONENT
   Smol
-  )
+)
 
 # add_subdirectory(AsmParser)
 # add_subdirectory(Disassembler)
