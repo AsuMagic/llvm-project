@@ -11,8 +11,9 @@
 
 #include "SmolTargetMachine.h"
 // #include "Smol.h"
-// #include "SmolMachineFunctionInfo.h"
-// #include "SmolTargetObjectFile.h"
+#include "SmolISelDAGToDAG.h"
+#include "SmolMachineFunction.h"
+#include "SmolTargetObjectFile.h"
 #include "TargetInfo/SmolTargetInfo.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
@@ -24,8 +25,8 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSmolTarget() {
   // Register the target.
   RegisterTargetMachine<SmolTargetMachine> X(getTheSmolTarget());
 
-  PassRegistry &PR = *PassRegistry::getPassRegistry();
-  initializeSmolDAGToDAGISelPass(PR);
+  // PassRegistry &PR = *PassRegistry::getPassRegistry();
+  // initializeSmolDAGToDAGISelPass(PR);
 }
 
 /// Create an ILP32 architecture model
@@ -39,7 +40,7 @@ SmolTargetMachine::SmolTargetMachine(const Target &T, const Triple &TT,
                         Reloc::Static, // TODO: PIC_ probably better?
                         CodeModel::Small,
                         OL),
-      TLOF(std::make_unique<SmolELFTargetObjectFile>()) {
+      TLOF(std::make_unique<SmolTargetObjectFile>()) {
   initAsmInfo();
 }
 
@@ -48,8 +49,7 @@ SmolTargetMachine::~SmolTargetMachine() = default;
 MachineFunctionInfo *SmolTargetMachine::createMachineFunctionInfo(
     BumpPtrAllocator &Allocator, const Function &F,
     const TargetSubtargetInfo *STI) const {
-  return SmolMachineFunctionInfo::create<SmolMachineFunctionInfo>(Allocator,
-                                                                  F, STI);
+  return SmolFunctionInfo::create<SmolFunctionInfo>(Allocator, F, STI);
 }
 
 namespace {
@@ -59,7 +59,7 @@ public:
   SmolPassConfig(SmolTargetMachine &TM, PassManagerBase &PM)
     : TargetPassConfig(TM, PM) {}
 
-  SmolTargetMachine &getSparcTargetMachine() const {
+  SmolTargetMachine &getSmolTargetMachine() const {
     return getTM<SmolTargetMachine>();
   }
 
@@ -80,7 +80,7 @@ void SmolPassConfig::addIRPasses() {
 }
 
 bool SmolPassConfig::addInstSelector() {
-  addPass(createSmolISelDag(getSparcTargetMachine()));
+  addPass(new SmolDAGToDAGISel(getSmolTargetMachine(), getOptLevel()));
   return false;
 }
 

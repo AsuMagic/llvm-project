@@ -15,16 +15,15 @@ tablegen(LLVM SmolGenSubtargetInfo.inc -gen-subtarget)
 add_public_tablegen_target(SmolCommonTableGen)
 
 add_llvm_target(SmolCodeGen
-  # SmolAsmPrinter.cpp
-  # SmolInstrInfo.cpp
-  # SmolISelDAGToDAG.cpp
+  SmolAsmPrinter.cpp
+  SmolInstrInfo.cpp
+  SmolISelDAGToDAG.cpp
   # SmolISelLowering.cpp
-  # SmolFrameLowering.cpp
-  # SmolMachineFunctionInfo.cpp
+  SmolFrameLowering.cpp
   SmolRegisterInfo.cpp
   SmolTargetMachine.cpp
   # SmolMCInstLower.cpp
-  # SmolTargetObjectFile.cpp
+  SmolTargetObjectFile.cpp
 
   LINK_COMPONENTS
   AsmPrinter
@@ -45,5 +44,5 @@ add_llvm_target(SmolCodeGen
 
 # add_subdirectory(AsmParser)
 # add_subdirectory(Disassembler)
-# add_subdirectory(MCTargetDesc)
+add_subdirectory(MCTargetDesc)
 add_subdirectory(TargetInfo)
