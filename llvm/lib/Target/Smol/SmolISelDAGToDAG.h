@@ -18,6 +18,10 @@
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
 
+// FIXME: wtf is this include hell
+#define GET_INSTRINFO_ENUM
+#include "SmolGenInstrInfo.inc"
+
 namespace llvm {
 class SmolDAGToDAGISel : public SelectionDAGISel {
 public:

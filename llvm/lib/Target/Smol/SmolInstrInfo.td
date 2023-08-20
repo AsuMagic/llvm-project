@@ -12,6 +12,10 @@
 
 include "SmolInstrFormats.td"
 
+//===----------------------------------------------------------------------====/
+// Opcodes
+//===----------------------------------------------------------------------====/
+
 def OPC_L8           : SmolOpcode<"L8",          0b00000000>;
 def OPC_L16          : SmolOpcode<"L16",         0b00000001>;
 def OPC_L32          : SmolOpcode<"L32",         0b00000010>;
@@ -81,13 +85,44 @@ def OPC_BSLI         : SmolOpcode<"BSLI",        0b11010000>;
 def OPC_BSRITLSB     : SmolOpcode<"BSRITLSB",    0b11010010>;
 def OPC_BASRI        : SmolOpcode<"BASRI",       0b11010100>;
 
+//===----------------------------------------------------------------------====/
+// Instruction types
+//===----------------------------------------------------------------------====/
+
 class ALURawbRb<SmolOpcode opcode, string opcodestr>
     : SmolALURegRegInst<opcode, (outs GPR:$a_wb), (ins GPR:$a_dst, GPR:$b),
                         opcodestr, "$a_dst, $b"> {
   let Constraints = "$a_dst = $a_wb";
 }
 
+class Jump<SmolOpcode opcode, string opcodestr>
+    : SmolJumpRegInst<opcode, (outs), (ins GPR:$target), opcodestr, "$target">;
+
+// Procedure return
+// TODO: where does this go in the file to be clean
+def smol_ret : SDNode<"SmolISD::Ret", SDTNone,
+                      [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
+
+//===----------------------------------------------------------------------====/
+// Lowering patterns
+//===----------------------------------------------------------------------====/
+
+class PatGprGpr<SDPatternOperator OpNode, SmolInst Inst>
+    : Pat<(OpNode GPR:$rs1, GPR:$rs2), (Inst GPR:$rs1, GPR:$rs2)>;
+
+//===----------------------------------------------------------------------====/
+// Instructions
+//===----------------------------------------------------------------------====/
+
+let isCall = 1 in  // FIXME: or... is it?
+def J : Jump<OPC_J, "j">;
+
 let isAdd = 1 in
 def IADD : ALURawbRb<OPC_IADD, "iadd">;
+def : PatGprGpr<add, IADD>;
 
 def ISUB : ALURawbRb<OPC_ISUB, "isub">;
+
+let isReturn = 1, isBarrier = 1, isTerminator = 1 in
+def PseudoRET : Pseudo<(outs), (ins), [(smol_ret)]>,
+                PseudoInstExpansion<(J RRET)>;

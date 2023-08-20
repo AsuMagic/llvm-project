@@ -308,3 +308,12 @@ class SmolALUWideAddInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{7-4} = a;
   let Inst{3-0} = dst;
 }
+
+// Pseudo instructions
+class Pseudo<dag outs, dag ins, list<dag> pattern, string opcodestr = "",
+             string argstr = "">
+    : SmolInst<outs, ins, opcodestr, argstr, pattern, InstFormatPseudo>,
+      Sched<[]> {
+  let isPseudo = 1;
+  let isCodeGenOnly = 1;
+}
