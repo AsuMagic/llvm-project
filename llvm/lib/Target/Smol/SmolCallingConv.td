@@ -20,8 +20,14 @@ def CC_Smol : CallingConv<[
 ]>;
 
 def RetCC_Smol : CallingConv<[
+  CCIfType<[i1, i8, i16], CCPromoteToType<i32>>,
+
   // TODO: define in CPU docs that this can be done
   CCIfType<[i32], CCAssignToReg<[R0, R1, R2, R3, R4, R5, R6]>>,
+
+  // Integer values get stored in stack slots that are 4 bytes in size and
+  // 4-byte aligned
+  CCIfType<[i32], CCAssignToStack<4, 4>>
 ]>;
 
 // TODO: SPARC uses register windows, but we don't. Consequences? Check RV?

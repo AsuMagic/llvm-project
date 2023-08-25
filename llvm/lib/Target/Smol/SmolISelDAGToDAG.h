@@ -32,7 +32,7 @@ public:
 
   // Pass Name
   StringRef getPassName() const override {
-    return "CPU0 DAG->DAG Pattern Instruction Selection";
+    return "Smol2 DAG->DAG Pattern Instruction Selection";
   }
 
   bool runOnMachineFunction(MachineFunction &MF) override;

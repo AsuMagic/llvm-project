@@ -25,6 +25,12 @@ using namespace llvm;
 
 #define DEBUG_TYPE "smol-isel"
 
+#define GET_INSTRINFO_ENUM
+#include "SmolGenInstrInfo.inc"
+
+#define GET_REGINFO_ENUM
+#include "SmolGenRegisterInfo.inc"
+
 #define PRINT_ALIAS_INSTR
 #include "SmolGenAsmWriter.inc"
 

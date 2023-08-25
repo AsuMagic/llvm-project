@@ -90,10 +90,15 @@ def OPC_BASRI        : SmolOpcode<"BASRI",       0b11010100>;
 //===----------------------------------------------------------------------====/
 
 class ALURawbRb<SmolOpcode opcode, string opcodestr>
-    : SmolALURegRegInst<opcode, (outs GPR:$a_wb), (ins GPR:$a_dst, GPR:$b),
-                        opcodestr, "$a_dst, $b"> {
+    : SmolALUWbConstrainedRegRegInst<opcode, (outs GPR:$a_wb),
+                                     (ins GPR:$a_dst, GPR:$b),
+                                     opcodestr, "$a_dst, $b"> {
   let Constraints = "$a_dst = $a_wb";
 }
+
+class ALURwbRb<SmolOpcode opcode, string opcodestr>
+    : SmolALURegRegInst<opcode, (outs GPR:$dst), (ins GPR:$a),
+                        opcodestr, "$dst, $a">;
 
 class Jump<SmolOpcode opcode, string opcodestr>
     : SmolJumpRegInst<opcode, (outs), (ins GPR:$target), opcodestr, "$target">;
@@ -114,15 +119,27 @@ class PatGprGpr<SDPatternOperator OpNode, SmolInst Inst>
 // Instructions
 //===----------------------------------------------------------------------====/
 
-let isCall = 1 in  // FIXME: or... is it?
-def J : Jump<OPC_J, "j">;
+// FIXME: reversed ops compared to ISA def
+let mayLoad = 0, mayStore = 0 in {
+    def LR : ALURwbRb<OPC_LR, "lr">;
 
-let isAdd = 1 in
-def IADD : ALURawbRb<OPC_IADD, "iadd">;
+    let isBranch = 1 in {
+        def J : Jump<OPC_J, "j">;
+    }
+
+    let isAdd = 1, isCommutable = 1 in {
+        def IADD : ALURawbRb<OPC_IADD, "iadd">;
+    }
+
+    def ISUB : ALURawbRb<OPC_ISUB, "isub">;
+
+    let isReturn = 1, isBarrier = 1, isTerminator = 1 in
+    def PseudoRET : Pseudo<(outs), (ins), [(smol_ret)]>,
+                    PseudoInstExpansion<(J RRET)>;
+}
+
 def : PatGprGpr<add, IADD>;
+def : PatGprGpr<sub, ISUB>;
 
-def ISUB : ALURawbRb<OPC_ISUB, "isub">;
 
-let isReturn = 1, isBarrier = 1, isTerminator = 1 in
-def PseudoRET : Pseudo<(outs), (ins), [(smol_ret)]>,
-                PseudoInstExpansion<(J RRET)>;
+def : InstAlias<"ret", (J RRET), 4>;

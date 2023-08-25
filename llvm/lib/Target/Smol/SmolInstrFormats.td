@@ -32,11 +32,11 @@ class SmolInst<dag outs, dag ins, string opcodestr, string argstr,
                list<dag> pattern, InstFormat format> : Instruction {
   let Namespace = "Smol";
 
-  bits<8> op;
+  bits<8> Opcode = 0;
 
   dag OutOperandList = outs;
   dag InOperandList = ins;
-  let AsmString = opcodestr;
+  let AsmString = opcodestr # "\t" # argstr;
   let Pattern = pattern;
 
   let TSFlags{3-0} = format.Value;
@@ -74,6 +74,7 @@ class SmolMemLoadInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = dst;
   let Inst{3-0} = addr;
+  let Opcode = opcode.Value;
 }
 
 class SmolRegLoadInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -85,6 +86,7 @@ class SmolRegLoadInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = dst;
   let Inst{3-0} = src;
+  let Opcode = opcode.Value;
 }
 
 class SmolMemLoadWideOffsetInst<SmolOpcode opcode, dag outs, dag ins,
@@ -98,6 +100,7 @@ class SmolMemLoadWideOffsetInst<SmolOpcode opcode, dag outs, dag ins,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = dst;
   let Inst{3-0} = addr;
+  let Opcode = opcode.Value;
 }
 
 /*
@@ -113,6 +116,7 @@ class SmolMemLoadShortOffsetInst<SmolOpcode opcode, dag outs, dag ins,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = dst;
   let Inst{3-0} = addr;
+  let Opcode = opcode.Value;
 
   let Size = 4;
 }
@@ -127,6 +131,7 @@ class SmolImmByteLoadInst<SmolOpcode opcode, dag outs, dag ins,
   let Inst{15-12} = opcode.Value{7-4};
   let Inst{11-4} = imm;
   let Inst{3-0} = dst;
+  let Opcode = opcode.Value;
 }
 
 class SmolImmI24LoadInst<SmolOpcode opcode, dag outs, dag ins,
@@ -139,6 +144,7 @@ class SmolImmI24LoadInst<SmolOpcode opcode, dag outs, dag ins,
   let Inst{15-12} = opcode.Value{7-4};
   let Inst{11-4} = imm{7-0};
   let Inst{3-0} = dst;
+  let Opcode = opcode.Value;
 }
 
 class SmolMemStoreInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -150,6 +156,7 @@ class SmolMemStoreInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = src;
   let Inst{3-0} = addr;
+  let Opcode = opcode.Value;
 }
 
 class SmolMemStoreWideOffsetInst<SmolOpcode opcode, dag outs, dag ins,
@@ -163,6 +170,7 @@ class SmolMemStoreWideOffsetInst<SmolOpcode opcode, dag outs, dag ins,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = src;
   let Inst{3-0} = base;
+  let Opcode = opcode.Value;
 }
 
 // TODO: SmolMemStoreShortOffsetInst
@@ -174,12 +182,14 @@ class SmolStackPushInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
 
   let Inst{15-8} = opcode.Value;
   let Inst{3-0} = src;
+  let Opcode = opcode.Value;
 }
 
 class SmolNoArgInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
                     string argstr>
     : SmolInst16<outs, ins, opcodestr, argstr, [], InstFormatNone> {
   let Inst{15-8} = opcode.Value;
+  let Opcode = opcode.Value;
 }
 
 class SmolTestRegRegInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -191,6 +201,7 @@ class SmolTestRegRegInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = b;
   let Inst{3-0} = a;
+  let Opcode = opcode.Value;
 }
 
 class SmolTestRegI4Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -202,6 +213,7 @@ class SmolTestRegI4Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = b_imm;
   let Inst{3-0} = a;
+  let Opcode = opcode.Value;
 }
 
 class SmolTestRegInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -211,6 +223,7 @@ class SmolTestRegInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
 
   let Inst{15-8} = opcode.Value;
   let Inst{3-0} = x;
+  let Opcode = opcode.Value;
 }
 
 class SmolPoolLoadInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -222,6 +235,7 @@ class SmolPoolLoadInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{15-12} = opcode.Value{7-4};
   let Inst{11-4} = offset_imm;
   let Inst{3-0} = dst;
+  let Opcode = opcode.Value;
 }
 
 class SmolJumpRegInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -231,6 +245,7 @@ class SmolJumpRegInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
 
   let Inst{15-8} = opcode.Value;
   let Inst{3-0} = target;
+  let Opcode = opcode.Value;
 }
 
 class SmolJumpLinkRegInst<SmolOpcode opcode, dag outs, dag ins,
@@ -242,6 +257,7 @@ class SmolJumpLinkRegInst<SmolOpcode opcode, dag outs, dag ins,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = dst;
   let Inst{3-0} = target;
+  let Opcode = opcode.Value;
 }
 
 class SmolJumpLinkI28Inst<SmolOpcode opcode, dag outs, dag ins,
@@ -252,6 +268,7 @@ class SmolJumpLinkI28Inst<SmolOpcode opcode, dag outs, dag ins,
   let Inst{31-16} = relative_target{27-12};
   let Inst{15-12} = opcode.Value{7-4};
   let Inst{11-0} = relative_target{11-0};
+  let Opcode = opcode.Value;
 }
 
 class SmolJumpI12Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -261,9 +278,10 @@ class SmolJumpI12Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
 
   let Inst{15-12} = opcode.Value{7-4};
   let Inst{11-0} = relative_target{11-0};
+  let Opcode = opcode.Value;
 }
 
-class SmolALURegRegInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
+class SmolALUWbConstrainedRegRegInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
                         string argstr>
     : SmolInst16<outs, ins, opcodestr, argstr, [], InstFormatR4R4> {
   bits<4> a_dst;
@@ -272,6 +290,19 @@ class SmolALURegRegInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = b;
   let Inst{3-0} = a_dst;
+  let Opcode = opcode.Value;
+}
+
+class SmolALURegRegInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
+                        string argstr>
+    : SmolInst16<outs, ins, opcodestr, argstr, [], InstFormatR4R4> {
+  bits<4> dst;
+  bits<4> a;
+
+  let Inst{15-8} = opcode.Value;
+  let Inst{7-4} = a;
+  let Inst{3-0} = dst;
+  let Opcode = opcode.Value;
 }
 
 class SmolALURegI4Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -283,6 +314,7 @@ class SmolALURegI4Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = b_imm;
   let Inst{3-0} = a_dst;
+  let Opcode = opcode.Value;
 }
 
 class SmolALURegI5Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -294,6 +326,7 @@ class SmolALURegI5Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{15-9} = opcode.Value{7-1};
   let Inst{8-4} = b_imm;
   let Inst{3-0} = a_dst;
+  let Opcode = opcode.Value;
 }
 
 class SmolALUWideAddInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
@@ -307,6 +340,7 @@ class SmolALUWideAddInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = a;
   let Inst{3-0} = dst;
+  let Opcode = opcode.Value;
 }
 
 // Pseudo instructions

@@ -27,6 +27,10 @@ class SmolInstrInfo : public SmolGenInstrInfo {
 public:
   explicit SmolInstrInfo(const SmolSubtarget &STI);
 
+  void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
+                   const DebugLoc &DL, MCRegister DestReg, MCRegister SrcReg,
+                   bool KillSrc) const override;
+
 protected:
   const SmolSubtarget &Subtarget;
 };

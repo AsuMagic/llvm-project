@@ -36,7 +36,7 @@ public:
     : AsmPrinter(TM, std::move(Streamer)) {}
 
   virtual StringRef getPassName() const override {
-    return "RISCW Assembly Printer";
+    return "Smol2 Assembly Printer";
   }
 
   void emitInstruction(const MachineInstr *MI) override;
@@ -45,7 +45,7 @@ public:
   // auto-generated function emitPseudoExpansionLowering to expand pseudo
   // instruction
   void EmitToStreamer(MCStreamer &S, const MCInst &Inst);
-  // Auto-generated function in RISCWGenMCPseudoLowering.inc
+  // Auto-generated function in SmolGenMCPseudoLowering.inc
   bool emitPseudoExpansionLowering(MCStreamer &OutStreamer,
                                    const MachineInstr *MI);
 
@@ -56,19 +56,23 @@ private:
 };
 }
 
+#define GET_INSTRINFO_ENUM
+#include "SmolGenInstrInfo.inc"
+
+#define GET_REGINFO_ENUM
+#include "SmolGenRegisterInfo.inc"
+
 // Simple pseudo-instructions have their lowering (with expansion to real
 // instructions) auto-generated.
-// FIXME: wot
-// #include "SmolGenMCPseudoLowering.inc"
+#include "SmolGenMCPseudoLowering.inc"
 void SmolAsmPrinter::EmitToStreamer(MCStreamer &S, const MCInst &Inst) {
   AsmPrinter::EmitToStreamer(*OutStreamer, Inst);
 }
 
 void SmolAsmPrinter::emitInstruction(const MachineInstr *MI) {
   // Do any auto-generated pseudo lowerings.
-  // FIXME: where dis generated :(
-//   if (emitPseudoExpansionLowering(*OutStreamer, MI))
-//     return;
+   if (emitPseudoExpansionLowering(*OutStreamer, MI))
+     return;
 
   MCInst TmpInst;
   LowerInstruction(MI, TmpInst);
