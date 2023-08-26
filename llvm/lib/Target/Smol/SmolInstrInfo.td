@@ -86,13 +86,66 @@ def OPC_BSRITLSB     : SmolOpcode<"BSRITLSB",    0b11010010>;
 def OPC_BASRI        : SmolOpcode<"BASRI",       0b11010100>;
 
 //===----------------------------------------------------------------------====/
+// Operand types
+//===----------------------------------------------------------------------====/
+
+// let OperandNamespace = "SmolOp" in {
+
+def UImm5AsmOperand : AsmOperandClass {
+  let Name = "UImm5";
+  let RenderMethod = "addImmOperands";
+  let DiagnosticType = "InvalidUImm5";
+}
+
+def uimm5 : Operand<i32>, ImmLeaf<i32, [{return isUInt<5>(Imm);}]> {
+  let ParserMatchClass = UImm5AsmOperand;
+  // let DecoderMathod = "decodeUImmOperand<5>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (!MCOp.evaluateAsConstantImm(Imm))
+      return false;
+    return isUInt<5>(Imm);
+  }];
+}
+
+def simm8 : Operand<i32>, ImmLeaf<i32, [{return isInt<8>(Imm);}]> {
+  // let ParserMatchClass = SImmAsmOperand<8>;
+  let EncoderMethod = "getImmOpValue";
+  let DecoderMethod = "decodeSImmOperand<12>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (MCOp.evaluateAsConstantImm(Imm))
+      return isInt<8>(Imm);
+    return MCOp.isBareSymbolRef();
+  }];
+  let OperandType = "OPERAND_SIMM8";
+  // let OperandNamespace = "RISCVOp";
+}
+
+// }
+
+//===----------------------------------------------------------------------====/
 // Instruction types
 //===----------------------------------------------------------------------====/
+
+class LoadSignedShortImm<SmolOpcode opcode, string opcodestr>
+    : SmolImmByteLoadInst<opcode, (outs GPR:$a_wb),
+                                  (ins GPR:$a_dst, simm8:$b_imm),
+                                     opcodestr, "$dst, $b_imm"> {
+  let Constraints = "$dst = $a_wb";
+}
 
 class ALURawbRb<SmolOpcode opcode, string opcodestr>
     : SmolALUWbConstrainedRegRegInst<opcode, (outs GPR:$a_wb),
                                      (ins GPR:$a_dst, GPR:$b),
                                      opcodestr, "$a_dst, $b"> {
+  let Constraints = "$a_dst = $a_wb";
+}
+
+class ALURawbRimm5<SmolOpcode opcode, string opcodestr>
+    : SmolALURegI5Inst<opcode, (outs GPR:$a_wb),
+                       (ins GPR:$a_dst, uimm5:$b_imm),
+                       opcodestr, "$a_dst, $b_imm"> {
   let Constraints = "$a_dst = $a_wb";
 }
 
@@ -115,12 +168,17 @@ def smol_ret : SDNode<"SmolISD::Ret", SDTNone,
 class PatGprGpr<SDPatternOperator OpNode, SmolInst Inst>
     : Pat<(OpNode GPR:$rs1, GPR:$rs2), (Inst GPR:$rs1, GPR:$rs2)>;
 
+class PatGprImm5<SDPatternOperator OpNode, SmolInst Inst>
+    : Pat<(OpNode GPR:$rs1, uimm5:$imm), (Inst GPR:$rs1, uimm5:$imm)>;
+
 //===----------------------------------------------------------------------====/
 // Instructions
 //===----------------------------------------------------------------------====/
 
 // FIXME: reversed ops compared to ISA def
 let mayLoad = 0, mayStore = 0 in {
+    def LSI : ALURwbRb<OPC_LSI, "lsi">;
+
     def LR : ALURwbRb<OPC_LR, "lr">;
 
     let isBranch = 1 in {
@@ -133,13 +191,45 @@ let mayLoad = 0, mayStore = 0 in {
 
     def ISUB : ALURawbRb<OPC_ISUB, "isub">;
 
+    def BAND : ALURawbRb<OPC_BAND, "band">;
+    def BOR : ALURawbRb<OPC_BOR, "bor">;
+    def BXOR : ALURawbRb<OPC_BXOR, "bxor">;
+
+    def BSL : ALURawbRb<OPC_BSL, "bsl">;
+    def BSLI : ALURawbRimm5<OPC_BSLI, "bsli">;
+
+    def BSR : ALURawbRb<OPC_BSR, "bsr">;
+    def BSRITLSB : ALURawbRimm5<OPC_BSRITLSB, "bsri_tlsb">;
+
+    def BASR : ALURawbRb<OPC_BASR, "basr">;
+    def BASRI : ALURawbRb<OPC_BASRI, "basri">;
+
     let isReturn = 1, isBarrier = 1, isTerminator = 1 in
     def PseudoRET : Pseudo<(outs), (ins), [(smol_ret)]>,
                     PseudoInstExpansion<(J RRET)>;
 }
 
+def imm32bottom6set : PatLeaf<(i32 imm), [{
+  return (N->getZExtValue() & 0x3f) == 0x3f;
+}]>;
+
+class shiftop<SDPatternOperator operator>
+  : PatFrags<(ops node:$val, node:$count),
+             [(operator node:$val, node:$count),
+              (operator node:$val, (and node:$count, imm32bottom6set))]>;
+
 def : PatGprGpr<add, IADD>;
 def : PatGprGpr<sub, ISUB>;
+def : PatGprGpr<and, BAND>;
+def : PatGprGpr<or, BOR>;
+def : PatGprGpr<xor, BXOR>;
+def : PatGprGpr<shiftop<shl>, BSL>;
+def : PatGprImm5<shiftop<shl>, BSLI>;
+def : PatGprGpr<shiftop<srl>, BSR>;
+def : PatGprImm5<shiftop<srl>, BSRITLSB>; // FIXME: T-bit side effect!
+def : PatGprGpr<shiftop<sra>, BASR>;
+def : PatGprImm5<shiftop<sra>, BASRI>;
 
+def : Pat<(simm8:$imm), (LSI imm:$imm)>;
 
 def : InstAlias<"ret", (J RRET), 4>;

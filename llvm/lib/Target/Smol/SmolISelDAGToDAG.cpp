@@ -15,6 +15,7 @@
 #include "SmolRegisterInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
+#include "llvm/Support/KnownBits.h"
 
 using namespace llvm;
 
