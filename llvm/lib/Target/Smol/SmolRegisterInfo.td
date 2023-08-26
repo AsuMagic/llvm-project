@@ -51,6 +51,12 @@ def GPR : RegisterClass<"Smol", [i32], 16,
          // Specific purpose
          RRET, RPL, RPS)>;
 
+def Rh2 : RegisterClass<"Smol", [i32], 2,
+    (add R8, R9, R10, R11)>;
+
+def Rl2 : RegisterClass<"Smol", [i32], 2,
+    (add R0, R1, R2, R3)>;
+
 // FIXME: nothing to say RRET/RPL/RPS are not allocatable?
 
 // TODO: how to represent R2 and Rh2? (thumb might be helpful here)

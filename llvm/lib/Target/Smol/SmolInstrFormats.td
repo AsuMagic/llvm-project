@@ -89,7 +89,7 @@ class SmolRegLoadInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Opcode = opcode.Value;
 }
 
-class SmolMemLoadWideOffsetInst<SmolOpcode opcode, dag outs, dag ins,
+class SmolMemLoad8WideOffsetInst<SmolOpcode opcode, dag outs, dag ins,
                                 string opcodestr, string argstr>
     : SmolInst32<outs, ins, opcodestr, argstr, [], InstFormatR4R4E16> {
   bits<16> offset;
@@ -103,24 +103,79 @@ class SmolMemLoadWideOffsetInst<SmolOpcode opcode, dag outs, dag ins,
   let Opcode = opcode.Value;
 }
 
-/*
-// TODO: Rh2/R2?
-class SmolMemLoadShortOffsetInst<SmolOpcode opcode, dag outs, dag ins,
-                                 string opcodestr, string argstr>
-    : SmolInst<outs, ins, opcodestr, argstr, [], InstFormatRh2R2I6> {
-  bits<16> offset;
+// FIXME: how to merge with the above/template it?
+
+class SmolMemLoad16WideOffsetInst<SmolOpcode opcode, dag outs, dag ins,
+                                string opcodestr, string argstr>
+    : SmolInst32<outs, ins, opcodestr, argstr, [], InstFormatR4R4E16> {
+  bits<17> offset;
   bits<4> addr;
   bits<4> dst;
 
-  let Inst{31-16} = offset;
+  let Inst{31-16} = offset{16-1};
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = dst;
   let Inst{3-0} = addr;
   let Opcode = opcode.Value;
-
-  let Size = 4;
 }
-*/
+
+class SmolMemLoad32WideOffsetInst<SmolOpcode opcode, dag outs, dag ins,
+                                string opcodestr, string argstr>
+    : SmolInst32<outs, ins, opcodestr, argstr, [], InstFormatR4R4E16> {
+  bits<18> offset;
+  bits<4> addr;
+  bits<4> dst;
+
+  let Inst{31-16} = offset{17-2};
+  let Inst{15-8} = opcode.Value;
+  let Inst{7-4} = dst;
+  let Inst{3-0} = addr;
+  let Opcode = opcode.Value;
+}
+
+class SmolMemLoad8ShortOffsetInst<SmolOpcode opcode, dag outs, dag ins,
+                                 string opcodestr, string argstr>
+    : SmolInst32<outs, ins, opcodestr, argstr, [], InstFormatR4R4E16> {
+  bits<6> offset;
+  bits<2> addr;
+  bits<2> dst;
+
+  let Inst{15-10} = opcode.Value{7-2};
+  let Inst{9-4} = offset;
+  let Inst{3-2} = dst;
+  let Inst{1-0} = addr;
+  let Opcode = opcode.Value;
+}
+
+// FIXME: how to merge with the above/template it?
+
+class SmolMemLoad16ShortOffsetInst<SmolOpcode opcode, dag outs, dag ins,
+                                 string opcodestr, string argstr>
+    : SmolInst32<outs, ins, opcodestr, argstr, [], InstFormatR4R4E16> {
+  bits<7> offset;
+  bits<2> addr;
+  bits<2> dst;
+
+  let Inst{15-10} = opcode.Value{7-2};
+  let Inst{9-4} = offset{6-1};
+  let Inst{3-2} = dst;
+  let Inst{1-0} = addr;
+  let Opcode = opcode.Value;
+}
+
+class SmolMemLoad32ShortOffsetInst<SmolOpcode opcode, dag outs, dag ins,
+                                 string opcodestr, string argstr>
+    : SmolInst32<outs, ins, opcodestr, argstr, [], InstFormatR4R4E16> {
+  bits<8> offset;
+  bits<2> addr;
+  bits<2> dst;
+
+  let Inst{15-10} = opcode.Value{7-2};
+  let Inst{9-4} = offset{7-2};
+  let Inst{3-2} = dst;
+  let Inst{1-0} = addr;
+  let Opcode = opcode.Value;
+}
 
 class SmolImmByteLoadInst<SmolOpcode opcode, dag outs, dag ins,
                           string opcodestr, string argstr>

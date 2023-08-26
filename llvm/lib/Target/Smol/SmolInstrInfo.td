@@ -124,6 +124,41 @@ def uimm5 : Operand<i32>, ImmLeaf<i32, [{return isUInt<5>(Imm);}]> {
   }];
 }
 
+def uimm6 : Operand<i32>, ImmLeaf<i32, [{return isUInt<6>(Imm);}]> {
+  // let ParserMatchClass = UImm6AsmOperand;
+  // let DecoderMathod = "decodeUImmOperand<6>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (!MCOp.evaluateAsConstantImm(Imm))
+      return false;
+    return isUInt<6>(Imm);
+  }];
+}
+
+def uimm7s1 : Operand<i32>, ImmLeaf<i32,
+    [{return isUInt<7>(Imm) && (Imm % 2) == 0;}]> {
+  // let ParserMatchClass = UImm6AsmOperand;
+  // let DecoderMathod = "decodeUImmOperand<6>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (!MCOp.evaluateAsConstantImm(Imm))
+      return false;
+    return isUInt<7>(Imm);
+  }];
+}
+
+def uimm8s2 : Operand<i32>, ImmLeaf<i32,
+    [{return isUInt<8>(Imm) && (Imm % 4) == 0;}]> {
+  // let ParserMatchClass = UImm6AsmOperand;
+  // let DecoderMathod = "decodeUImmOperand<6>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (!MCOp.evaluateAsConstantImm(Imm))
+      return false;
+    return isUInt<8>(Imm);
+  }];
+}
+
 def uimm32 : Operand<i32>, ImmLeaf<i32, [{return isUInt<32>(Imm);}]> {
   // let ParserMatchClass = UImm32AsmOperand;
   // let DecoderMathod = "decodeUImmOperand<32>";
@@ -146,6 +181,50 @@ def simm8 : Operand<i32>, ImmLeaf<i32, [{return isInt<8>(Imm);}]> {
     return MCOp.isBareSymbolRef();
   }];
   // let OperandType = "OPERAND_SIMM8";
+  // let OperandNamespace = "RISCVOp";
+}
+
+def simm16 : Operand<i32>, ImmLeaf<i32, [{return isInt<16>(Imm);}]> {
+  // let ParserMatchClass = SImmAsmOperand<24>;
+  let EncoderMethod = "getImmOpValue";
+  let DecoderMethod = "decodeSImmOperand<16>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (MCOp.evaluateAsConstantImm(Imm))
+      return isInt<16>(Imm);
+    return MCOp.isBareSymbolRef();
+  }];
+  // let OperandType = "OPERAND_SIMM24";
+  // let OperandNamespace = "RISCVOp";
+}
+
+def simm17s1 : Operand<i32>, ImmLeaf<i32,
+    [{return isInt<17>(Imm) && (Imm % 2) == 0;}]> {
+  // let ParserMatchClass = SImmAsmOperand<24>;
+  let EncoderMethod = "getImmOpValue";
+  let DecoderMethod = "decodeSImmOperand<17>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (MCOp.evaluateAsConstantImm(Imm))
+      return isInt<17>(Imm);
+    return MCOp.isBareSymbolRef();
+  }];
+  // let OperandType = "OPERAND_SIMM24";
+  // let OperandNamespace = "RISCVOp";
+}
+
+def simm18s2 : Operand<i32>, ImmLeaf<i32,
+    [{return isInt<18>(Imm) && (Imm % 4) == 0;}]> {
+  // let ParserMatchClass = SImmAsmOperand<24>;
+  let EncoderMethod = "getImmOpValue";
+  let DecoderMethod = "decodeSImmOperand<18>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (MCOp.evaluateAsConstantImm(Imm))
+      return isInt<18>(Imm);
+    return MCOp.isBareSymbolRef();
+  }];
+  // let OperandType = "OPERAND_SIMM24";
   // let OperandNamespace = "RISCVOp";
 }
 
@@ -172,8 +251,38 @@ def simm24 : Operand<i32>, ImmLeaf<i32, [{return isInt<24>(Imm);}]> {
 
 class LoadNoOff<SmolOpcode opcode, string opcodestr>
     : SmolMemLoadInst<opcode, (outs GPR:$dst), (ins GPR:$addr),
-                       opcodestr, "$addr, $dst"> {
+                      opcodestr, "$addr, $dst"> {
 }
+
+class Load8WideOff<SmolOpcode opcode, string opcodestr>
+    : SmolMemLoad8WideOffsetInst<opcode, (outs GPR:$dst),
+                                 (ins GPR:$addr, simm16:$offset),
+                                 opcodestr, "$addr, $dst, $offset">;
+
+class Load16WideOff<SmolOpcode opcode, string opcodestr>
+    : SmolMemLoad16WideOffsetInst<opcode, (outs GPR:$dst),
+                                 (ins GPR:$addr, simm17s1:$offset),
+                                 opcodestr, "$addr, $dst, $offset">;
+
+class Load32WideOff<SmolOpcode opcode, string opcodestr>
+    : SmolMemLoad32WideOffsetInst<opcode, (outs GPR:$dst),
+                                 (ins GPR:$addr, simm18s2:$offset),
+                                 opcodestr, "$addr, $dst, $offset">;
+
+class Load8ShortOff<SmolOpcode opcode, string opcodestr>
+    : SmolMemLoad8ShortOffsetInst<opcode, (outs Rl2:$dst),
+                                  (ins Rh2:$addr, uimm6:$offset),
+                                  opcodestr, "$addr, $dst, $offset">;
+
+class Load16ShortOff<SmolOpcode opcode, string opcodestr>
+    : SmolMemLoad16ShortOffsetInst<opcode, (outs Rl2:$dst),
+                                   (ins Rh2:$addr, uimm7s1:$offset),
+                                   opcodestr, "$addr, $dst, $offset">;
+
+class Load32ShortOff<SmolOpcode opcode, string opcodestr>
+    : SmolMemLoad32ShortOffsetInst<opcode, (outs Rl2:$dst),
+                                   (ins Rh2:$addr, uimm8s2:$offset),
+                                   opcodestr, "$addr, $dst, $offset">;
 
 class LoadSignedShortImm<SmolOpcode opcode, string opcodestr>
     : SmolImmByteLoadInst<opcode, (outs GPR:$dst), (ins simm8:$imm),
@@ -213,9 +322,28 @@ def smol_ret : SDNode<"SmolISD::Ret", SDTNone,
 // Lowering pattern classes
 //===----------------------------------------------------------------------====/
 
-class PatLoadNoOff<PatFrag LoadOp, SmolInst Inst, ValueType vt = i32>
-    : Pat<(vt (LoadOp (i32 GPR:$addr))),
+// Addressing modes
+class AddrRegImm<string name> : ComplexPattern<iPTR, 2, name>;
+
+def AddrRegImmU6 : AddrRegImm<"SelectAddrRegImmU6">;
+def AddrRegImmU7 : AddrRegImm<"SelectAddrRegImmU7">;
+def AddrRegImmU8 : AddrRegImm<"SelectAddrRegImmU8">;
+
+def AddrRegImmS16 : AddrRegImm<"SelectAddrRegImmS16">;
+def AddrRegImmS17 : AddrRegImm<"SelectAddrRegImmS17">;
+def AddrRegImmS18 : AddrRegImm<"SelectAddrRegImmS18">;
+
+class PatLoadNoOff<PatFrag LoadOp, SmolInst Inst>
+    : Pat<(i32 (LoadOp (i32 GPR:$addr))),
           (Inst GPR:$addr)>;
+
+class PatLoadShortOff<PatFrag LoadOp, SmolInst Inst, Operand imm, AddrRegImm addressing>
+    : Pat<(i32 (LoadOp (addressing (i32 Rh2:$rs1), imm:$imm))),
+          (Inst Rh2:$rs1, imm:$imm)>;
+
+class PatLoadWideOff<PatFrag LoadOp, SmolInst Inst, Operand imm, AddrRegImm addressing>
+    : Pat<(i32 (LoadOp (addressing (i32 GPR:$rs1), imm:$imm))),
+          (Inst GPR:$rs1, imm:$imm)>;
 
 class PatGprGpr<SDPatternOperator OpNode, SmolInst Inst>
     : Pat<(OpNode GPR:$rs1, GPR:$rs2), (Inst GPR:$rs1, GPR:$rs2)>;
@@ -241,11 +369,26 @@ class shiftop<SDPatternOperator operator>
 //===----------------------------------------------------------------------====/
 
 let mayLoad = 1, mayStore = 0 in {
+  // Short offset:
   def L8 : LoadNoOff<OPC_L8, "l8">;
   def L16 : LoadNoOff<OPC_L16, "l16">;
   def LS8 : LoadNoOff<OPC_LS8, "ls8">;
   def LS16 : LoadNoOff<OPC_LS16, "ls16">;
   def L32 : LoadNoOff<OPC_L32, "l32">;
+
+  // Short offset:
+  def L8O : Load8ShortOff<OPC_L8O, "l8o">;
+  def L16O : Load16ShortOff<OPC_L16O, "l16o">;
+  def L32O : Load32ShortOff<OPC_L32O, "l32o">;
+  def LS8O : Load8ShortOff<OPC_LS8O, "ls8o">;
+  def LS16O : Load16ShortOff<OPC_LS16O, "ls16o">;
+  
+  // Wide offset:
+  def L8OW : Load8WideOff<OPC_L8OW, "l8ow">;
+  def L16OW : Load16WideOff<OPC_L16OW, "l16ow">;
+  def L32OW : Load32WideOff<OPC_L32OW, "l32ow">;
+  def LS8OW : Load8WideOff<OPC_LS8OW, "ls8ow">;
+  def LS16OW : Load16WideOff<OPC_LS16OW, "ls16ow">;
 }
 
 let mayLoad = 0, mayStore = 0 in {
@@ -291,11 +434,23 @@ let mayLoad = 0, mayStore = 0 in {
 //===----------------------------------------------------------------------====/
 
 // Memory loads
-def : PatLoadNoOff<extloadi8, L8>;
-def : PatLoadNoOff<extloadi16, L16>;
+def : PatLoadNoOff<zextloadi8, L8>;
+def : PatLoadNoOff<zextloadi16, L16>;
 def : PatLoadNoOff<load, L32>;
 def : PatLoadNoOff<sextloadi8, LS8>;
 def : PatLoadNoOff<sextloadi16, LS16>;
+
+def : PatLoadShortOff<zextloadi8, L8O, uimm6, AddrRegImmU6>;
+def : PatLoadShortOff<zextloadi16, L16O, uimm7s1, AddrRegImmU7>;
+def : PatLoadShortOff<load, L32O, uimm8s2, AddrRegImmU8>;
+def : PatLoadShortOff<sextloadi8, LS8O, uimm6, AddrRegImmU6>;
+def : PatLoadShortOff<sextloadi16, LS16O, uimm7s1, AddrRegImmU7>;
+
+def : PatLoadWideOff<zextloadi8, L8OW, simm16, AddrRegImmS16>;
+def : PatLoadWideOff<zextloadi16, L16OW, simm17s1, AddrRegImmS17>;
+def : PatLoadShortOff<load, L32OW, simm18s2, AddrRegImmS18>;
+def : PatLoadWideOff<sextloadi8, LS8OW, simm16, AddrRegImmS16>;
+def : PatLoadWideOff<sextloadi16, LS16OW, simm17s1, AddrRegImmS17>;
 
 // ALU
 def : PatGprGpr<add, IADD>;
