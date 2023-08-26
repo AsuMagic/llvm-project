@@ -19,9 +19,10 @@
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineOperand.h"
-#include "llvm/MC/MCInst.h"
-#include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstBuilder.h"
+#include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/TargetRegistry.h"
 
 using namespace llvm;
@@ -32,8 +33,8 @@ namespace llvm {
 class SmolAsmPrinter : public AsmPrinter {
 public:
   explicit SmolAsmPrinter(TargetMachine &TM,
-                           std::unique_ptr<MCStreamer> Streamer)
-    : AsmPrinter(TM, std::move(Streamer)) {}
+                          std::unique_ptr<MCStreamer> Streamer)
+      : AsmPrinter(TM, std::move(Streamer)) {}
 
   virtual StringRef getPassName() const override {
     return "Smol2 Assembly Printer";
@@ -51,10 +52,10 @@ public:
 
 private:
   void LowerInstruction(const MachineInstr *MI, MCInst &OutMI) const;
-  MCOperand LowerOperand(const MachineOperand& MO) const;
+  MCOperand LowerOperand(const MachineOperand &MO) const;
   MCOperand LowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym) const;
 };
-}
+} // namespace llvm
 
 #define GET_INSTRINFO_ENUM
 #include "SmolGenInstrInfo.inc"
@@ -71,8 +72,22 @@ void SmolAsmPrinter::EmitToStreamer(MCStreamer &S, const MCInst &Inst) {
 
 void SmolAsmPrinter::emitInstruction(const MachineInstr *MI) {
   // Do any auto-generated pseudo lowerings.
-   if (emitPseudoExpansionLowering(*OutStreamer, MI))
-     return;
+  if (emitPseudoExpansionLowering(*OutStreamer, MI))
+    return;
+
+  // TODO: should be moved to a file dedicated to pseudo expansion?
+  if (MI->getOpcode() == Smol::LoadFullImm) {
+    auto &Reg = MI->getOperand(0);
+    const auto Imm = MI->getOperand(1).getImm();
+
+    EmitToStreamer(*OutStreamer, MCInstBuilder(Smol::LSIW)
+                                     .addReg(Reg.getReg())
+                                     .addImm(Imm & 0x00FFFFFF));
+    EmitToStreamer(
+        *OutStreamer,
+        MCInstBuilder(Smol::LSIH).addReg(Reg.getReg()).addImm(Imm >> 24));
+    return;
+  }
 
   MCInst TmpInst;
   LowerInstruction(MI, TmpInst);
@@ -80,7 +95,7 @@ void SmolAsmPrinter::emitInstruction(const MachineInstr *MI) {
 }
 
 void SmolAsmPrinter::LowerInstruction(const MachineInstr *MI,
-                                       MCInst &OutMI) const {
+                                      MCInst &OutMI) const {
   OutMI.setOpcode(MI->getOpcode());
 
   for (const MachineOperand &MO : MI->operands()) {
@@ -90,7 +105,7 @@ void SmolAsmPrinter::LowerInstruction(const MachineInstr *MI,
   }
 }
 
-MCOperand SmolAsmPrinter::LowerOperand(const MachineOperand& MO) const {
+MCOperand SmolAsmPrinter::LowerOperand(const MachineOperand &MO) const {
   switch (MO.getType()) {
   case MachineOperand::MO_Register:
     // Ignore all implicit register operands.
@@ -122,17 +137,17 @@ MCOperand SmolAsmPrinter::LowerOperand(const MachineOperand& MO) const {
 
   default:
     report_fatal_error("unknown operand type");
- }
+  }
 
   return MCOperand();
 }
 
 MCOperand SmolAsmPrinter::LowerSymbolOperand(const MachineOperand &MO,
-                                              MCSymbol *Sym) const {
+                                             MCSymbol *Sym) const {
   MCContext &Ctx = OutContext;
 
   const MCExpr *Expr =
-    MCSymbolRefExpr::create(Sym, MCSymbolRefExpr::VK_None, Ctx);
+      MCSymbolRefExpr::create(Sym, MCSymbolRefExpr::VK_None, Ctx);
 
   if (!MO.isJTI() && !MO.isMBB() && MO.getOffset())
     Expr = MCBinaryExpr::createAdd(

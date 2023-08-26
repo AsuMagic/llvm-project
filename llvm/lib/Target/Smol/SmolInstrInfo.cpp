@@ -25,5 +25,4 @@ void SmolInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
       .addReg(SrcReg, getKillRegState(SrcReg));
 }
 
-
 }

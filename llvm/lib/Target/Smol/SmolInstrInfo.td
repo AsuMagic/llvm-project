@@ -396,6 +396,9 @@ let mayLoad = 0, mayStore = 0 in {
   def LSIH : LoadSignedShortImm<OPC_LSIH, "lsih">;
   def LSIW : LoadSignedWideImm<OPC_LSIW, "lsiw">;
 
+  def LoadFullImm: Pseudo<(outs GPR:$dst), (ins uimm32:$imm),
+                          [(set GPR:$dst, imm:$imm)]>;
+
   // FIXME: reversed ops compared to ISA def
   def LR : ALURwbRb<OPC_LR, "lr">;
 
@@ -468,6 +471,7 @@ def : PatGprImm5<shiftop<sra>, BASRI>;
 // Immediates
 def : Pat<(simm8:$imm), (LSI imm:$imm)>;
 def : Pat<(simm24:$imm), (LSIW imm:$imm)>;
+def : Pat<(uimm32:$imm), (LoadFullImm imm:$imm)>;
 
 // TODO: this is 3 cycles total; prefer literal pools and iprel when possible
 // FIXME: no workies; how to specify multiple insns with 1 temp reg?
