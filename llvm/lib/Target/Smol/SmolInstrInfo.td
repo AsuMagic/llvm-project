@@ -128,6 +128,11 @@ def simm8 : Operand<i32>, ImmLeaf<i32, [{return isInt<8>(Imm);}]> {
 // Instruction types
 //===----------------------------------------------------------------------====/
 
+class LoadNoOff<SmolOpcode opcode, string opcodestr>
+    : SmolMemLoadInst<opcode, (outs GPR:$dst), (ins GPR:$addr),
+                       opcodestr, "$addr, $dst"> {
+}
+
 class LoadSignedShortImm<SmolOpcode opcode, string opcodestr>
     : SmolImmByteLoadInst<opcode, (outs GPR:$a_wb),
                                   (ins GPR:$a_dst, simm8:$b_imm),
@@ -162,54 +167,18 @@ def smol_ret : SDNode<"SmolISD::Ret", SDTNone,
                       [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
 //===----------------------------------------------------------------------====/
-// Lowering patterns
+// Lowering pattern classes
 //===----------------------------------------------------------------------====/
+
+class PatLoadNoOff<PatFrag LoadOp, SmolInst Inst, ValueType vt = i32>
+    : Pat<(vt (LoadOp (i32 GPR:$addr))),
+          (Inst GPR:$addr)>;
 
 class PatGprGpr<SDPatternOperator OpNode, SmolInst Inst>
     : Pat<(OpNode GPR:$rs1, GPR:$rs2), (Inst GPR:$rs1, GPR:$rs2)>;
 
 class PatGprImm5<SDPatternOperator OpNode, SmolInst Inst>
     : Pat<(OpNode GPR:$rs1, uimm5:$imm), (Inst GPR:$rs1, uimm5:$imm)>;
-
-//===----------------------------------------------------------------------====/
-// Instructions
-//===----------------------------------------------------------------------====/
-
-let mayLoad = 0, mayStore = 0 in {
-    def LSI : ALURwbRb<OPC_LSI, "lsi">;
-
-    // FIXME: reversed ops compared to ISA def
-    def LR : ALURwbRb<OPC_LR, "lr">;
-
-    let isBranch = 1 in {
-        def J : Jump<OPC_J, "j">;
-    }
-
-    let isAdd = 1, isCommutable = 1 in {
-        def IADD : ALURawbRb<OPC_IADD, "iadd">;
-    }
-
-    def ISUB : ALURawbRb<OPC_ISUB, "isub">;
-
-    let isCommutable = 1 in {
-      def BAND : ALURawbRb<OPC_BAND, "band">;
-      def BOR : ALURawbRb<OPC_BOR, "bor">;
-      def BXOR : ALURawbRb<OPC_BXOR, "bxor">;
-    }
-
-    def BSL : ALURawbRb<OPC_BSL, "bsl">;
-    def BSLI : ALURawbRimm5<OPC_BSLI, "bsli">;
-
-    def BSR : ALURawbRb<OPC_BSR, "bsr">;
-    def BSRITLSB : ALURawbRimm5<OPC_BSRITLSB, "bsri_tlsb">;
-
-    def BASR : ALURawbRb<OPC_BASR, "basr">;
-    def BASRI : ALURawbRb<OPC_BASRI, "basri">;
-
-    let isReturn = 1, isBarrier = 1, isTerminator = 1 in
-    def PseudoRET : Pseudo<(outs), (ins), [(smol_ret)]>,
-                    PseudoInstExpansion<(J RRET)>;
-}
 
 def imm32bottom6set : PatLeaf<(i32 imm), [{
   return (N->getZExtValue() & 0x3f) == 0x3f;
@@ -220,6 +189,66 @@ class shiftop<SDPatternOperator operator>
              [(operator node:$val, node:$count),
               (operator node:$val, (and node:$count, imm32bottom6set))]>;
 
+//===----------------------------------------------------------------------====/
+// Instructions
+//===----------------------------------------------------------------------====/
+
+let mayLoad = 1, mayStore = 0 in {
+  def L8 : LoadNoOff<OPC_L8, "l8">;
+  def L16 : LoadNoOff<OPC_L16, "l16">;
+  def LS8 : LoadNoOff<OPC_LS8, "ls8">;
+  def LS16 : LoadNoOff<OPC_LS16, "ls16">;
+  def L32 : LoadNoOff<OPC_L32, "l32">;
+}
+
+let mayLoad = 0, mayStore = 0 in {
+  def LSI : ALURwbRb<OPC_LSI, "lsi">;
+
+  // FIXME: reversed ops compared to ISA def
+  def LR : ALURwbRb<OPC_LR, "lr">;
+
+  let isBranch = 1 in {
+      def J : Jump<OPC_J, "j">;
+  }
+
+  let isAdd = 1, isCommutable = 1 in {
+      def IADD : ALURawbRb<OPC_IADD, "iadd">;
+  }
+
+  def ISUB : ALURawbRb<OPC_ISUB, "isub">;
+
+  let isCommutable = 1 in {
+    def BAND : ALURawbRb<OPC_BAND, "band">;
+    def BOR : ALURawbRb<OPC_BOR, "bor">;
+    def BXOR : ALURawbRb<OPC_BXOR, "bxor">;
+  }
+
+  def BSL : ALURawbRb<OPC_BSL, "bsl">;
+  def BSLI : ALURawbRimm5<OPC_BSLI, "bsli">;
+
+  def BSR : ALURawbRb<OPC_BSR, "bsr">;
+  def BSRITLSB : ALURawbRimm5<OPC_BSRITLSB, "bsri_tlsb">;
+
+  def BASR : ALURawbRb<OPC_BASR, "basr">;
+  def BASRI : ALURawbRb<OPC_BASRI, "basri">;
+
+  let isReturn = 1, isBarrier = 1, isTerminator = 1 in
+  def PseudoRET : Pseudo<(outs), (ins), [(smol_ret)]>,
+                  PseudoInstExpansion<(J RRET)>;
+}
+
+//===----------------------------------------------------------------------====/
+// Instruction lowering patterns
+//===----------------------------------------------------------------------====/
+
+// Memory loads
+def : PatLoadNoOff<extloadi8, L8>;
+def : PatLoadNoOff<extloadi16, L16>;
+def : PatLoadNoOff<load, L32>;
+def : PatLoadNoOff<sextloadi8, LS8>;
+def : PatLoadNoOff<sextloadi16, LS16>;
+
+// ALU
 def : PatGprGpr<add, IADD>;
 def : PatGprGpr<sub, ISUB>;
 def : PatGprGpr<and, BAND>;
