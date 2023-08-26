@@ -175,10 +175,10 @@ class PatGprImm5<SDPatternOperator OpNode, SmolInst Inst>
 // Instructions
 //===----------------------------------------------------------------------====/
 
-// FIXME: reversed ops compared to ISA def
 let mayLoad = 0, mayStore = 0 in {
     def LSI : ALURwbRb<OPC_LSI, "lsi">;
 
+    // FIXME: reversed ops compared to ISA def
     def LR : ALURwbRb<OPC_LR, "lr">;
 
     let isBranch = 1 in {
