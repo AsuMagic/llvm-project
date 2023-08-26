@@ -189,20 +189,22 @@ let mayLoad = 0, mayStore = 0 in {
         def IADD : ALURawbRb<OPC_IADD, "iadd">;
     }
 
-    def ISUB : ALURawbRb<OPC_ISUB, "isub">;
+    let isCommutable = 1 in {
+      def ISUB : ALURawbRb<OPC_ISUB, "isub">;
 
-    def BAND : ALURawbRb<OPC_BAND, "band">;
-    def BOR : ALURawbRb<OPC_BOR, "bor">;
-    def BXOR : ALURawbRb<OPC_BXOR, "bxor">;
+      def BAND : ALURawbRb<OPC_BAND, "band">;
+      def BOR : ALURawbRb<OPC_BOR, "bor">;
+      def BXOR : ALURawbRb<OPC_BXOR, "bxor">;
 
-    def BSL : ALURawbRb<OPC_BSL, "bsl">;
-    def BSLI : ALURawbRimm5<OPC_BSLI, "bsli">;
+      def BSL : ALURawbRb<OPC_BSL, "bsl">;
+      def BSLI : ALURawbRimm5<OPC_BSLI, "bsli">;
 
-    def BSR : ALURawbRb<OPC_BSR, "bsr">;
-    def BSRITLSB : ALURawbRimm5<OPC_BSRITLSB, "bsri_tlsb">;
+      def BSR : ALURawbRb<OPC_BSR, "bsr">;
+      def BSRITLSB : ALURawbRimm5<OPC_BSRITLSB, "bsri_tlsb">;
 
-    def BASR : ALURawbRb<OPC_BASR, "basr">;
-    def BASRI : ALURawbRb<OPC_BASRI, "basri">;
+      def BASR : ALURawbRb<OPC_BASR, "basr">;
+      def BASRI : ALURawbRb<OPC_BASRI, "basri">;
+    }
 
     let isReturn = 1, isBarrier = 1, isTerminator = 1 in
     def PseudoRET : Pseudo<(outs), (ins), [(smol_ret)]>,
