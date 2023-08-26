@@ -319,7 +319,8 @@ def : Pat<(simm24:$imm), (LSIW imm:$imm)>;
 // def : Pat<(i32 imm:$imm), >;
 
 // optimization: load of 0x??000000 is a lsih
-def : Pat<(i32 imm32bottom24clear:$imm), (LSIH (HI8 imm:$imm))>;
+// FIXME: not actually the case lol -- should the ISA clear 24 lower or not?
+// def : Pat<(i32 imm32bottom24clear:$imm), (LSIH (HI8 imm:$imm))>;
 
 // Branching
 def : InstAlias<"ret", (J RRET), 4>;
