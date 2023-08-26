@@ -86,6 +86,22 @@ def OPC_BSRITLSB     : SmolOpcode<"BSRITLSB",    0b11010010>;
 def OPC_BASRI        : SmolOpcode<"BASRI",       0b11010100>;
 
 //===----------------------------------------------------------------------====/
+// Useful util transforms (mostly immediate transforms)
+//===----------------------------------------------------------------------====/
+
+def LO24 : SDNodeXForm<imm, [{
+  // Transformation function: get the low 24 bits.
+  return CurDAG->getTargetConstant(
+    N->getZExtValue() & 0x00FFFFFF, SDLoc(N), MVT::i32);
+}]>;
+
+def HI8 : SDNodeXForm<imm, [{
+  // Transformation function: shift the u8 immediate value down.
+  return CurDAG->getTargetConstant(
+    (unsigned)N->getZExtValue() >> 24, SDLoc(N), MVT::i32);
+}]>;
+
+//===----------------------------------------------------------------------====/
 // Operand types
 //===----------------------------------------------------------------------====/
 
@@ -108,6 +124,17 @@ def uimm5 : Operand<i32>, ImmLeaf<i32, [{return isUInt<5>(Imm);}]> {
   }];
 }
 
+def uimm32 : Operand<i32>, ImmLeaf<i32, [{return isUInt<32>(Imm);}]> {
+  // let ParserMatchClass = UImm32AsmOperand;
+  // let DecoderMathod = "decodeUImmOperand<32>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (!MCOp.evaluateAsConstantImm(Imm))
+      return false;
+    return isUInt<32>(Imm);
+  }];
+}
+
 def simm8 : Operand<i32>, ImmLeaf<i32, [{return isInt<8>(Imm);}]> {
   // let ParserMatchClass = SImmAsmOperand<8>;
   let EncoderMethod = "getImmOpValue";
@@ -118,9 +145,24 @@ def simm8 : Operand<i32>, ImmLeaf<i32, [{return isInt<8>(Imm);}]> {
       return isInt<8>(Imm);
     return MCOp.isBareSymbolRef();
   }];
-  let OperandType = "OPERAND_SIMM8";
+  // let OperandType = "OPERAND_SIMM8";
   // let OperandNamespace = "RISCVOp";
 }
+
+def simm24 : Operand<i32>, ImmLeaf<i32, [{return isInt<24>(Imm);}]> {
+  // let ParserMatchClass = SImmAsmOperand<24>;
+  let EncoderMethod = "getImmOpValue";
+  let DecoderMethod = "decodeSImmOperand<24>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (MCOp.evaluateAsConstantImm(Imm))
+      return isInt<24>(Imm);
+    return MCOp.isBareSymbolRef();
+  }];
+  // let OperandType = "OPERAND_SIMM24";
+  // let OperandNamespace = "RISCVOp";
+}
+
 
 // }
 
@@ -134,11 +176,12 @@ class LoadNoOff<SmolOpcode opcode, string opcodestr>
 }
 
 class LoadSignedShortImm<SmolOpcode opcode, string opcodestr>
-    : SmolImmByteLoadInst<opcode, (outs GPR:$a_wb),
-                                  (ins GPR:$a_dst, simm8:$b_imm),
-                                     opcodestr, "$dst, $b_imm"> {
-  let Constraints = "$dst = $a_wb";
-}
+    : SmolImmByteLoadInst<opcode, (outs GPR:$dst), (ins simm8:$imm),
+                          opcodestr, "$dst, $imm">;
+
+class LoadSignedWideImm<SmolOpcode opcode, string opcodestr>
+    : SmolImmI24LoadInst<opcode, (outs GPR:$dst), (ins simm24:$imm),
+                         opcodestr, "$dst, $imm">;
 
 class ALURawbRb<SmolOpcode opcode, string opcodestr>
     : SmolALUWbConstrainedRegRegInst<opcode, (outs GPR:$a_wb),
@@ -184,6 +227,10 @@ def imm32bottom6set : PatLeaf<(i32 imm), [{
   return (N->getZExtValue() & 0x3f) == 0x3f;
 }]>;
 
+def imm32bottom24clear : PatLeaf<(i32 imm), [{
+  return (N->getZExtValue() & 0xffffff) == 0;
+}]>;
+
 class shiftop<SDPatternOperator operator>
   : PatFrags<(ops node:$val, node:$count),
              [(operator node:$val, node:$count),
@@ -202,7 +249,9 @@ let mayLoad = 1, mayStore = 0 in {
 }
 
 let mayLoad = 0, mayStore = 0 in {
-  def LSI : ALURwbRb<OPC_LSI, "lsi">;
+  def LSI : LoadSignedShortImm<OPC_LSI, "lsi">;
+  def LSIH : LoadSignedShortImm<OPC_LSIH, "lsih">;
+  def LSIW : LoadSignedWideImm<OPC_LSIW, "lsiw">;
 
   // FIXME: reversed ops compared to ISA def
   def LR : ALURwbRb<OPC_LR, "lr">;
@@ -261,6 +310,16 @@ def : PatGprImm5<shiftop<srl>, BSRITLSB>; // FIXME: T-bit side effect!
 def : PatGprGpr<shiftop<sra>, BASR>;
 def : PatGprImm5<shiftop<sra>, BASRI>;
 
+// Immediates
 def : Pat<(simm8:$imm), (LSI imm:$imm)>;
+def : Pat<(simm24:$imm), (LSIW imm:$imm)>;
 
+// TODO: this is 3 cycles total; prefer literal pools and iprel when possible
+// FIXME: no workies; how to specify multiple insns with 1 temp reg?
+// def : Pat<(i32 imm:$imm), >;
+
+// optimization: load of 0x??000000 is a lsih
+def : Pat<(i32 imm32bottom24clear:$imm), (LSIH (HI8 imm:$imm))>;
+
+// Branching
 def : InstAlias<"ret", (J RRET), 4>;
