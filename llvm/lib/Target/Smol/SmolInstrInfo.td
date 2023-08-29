@@ -437,23 +437,29 @@ let mayLoad = 0, mayStore = 0 in {
 //===----------------------------------------------------------------------====/
 
 // Memory loads
+def : PatLoadNoOff<extloadi8, L8>;
 def : PatLoadNoOff<zextloadi8, L8>;
-def : PatLoadNoOff<zextloadi16, L16>;
-def : PatLoadNoOff<load, L32>;
 def : PatLoadNoOff<sextloadi8, LS8>;
+def : PatLoadNoOff<extloadi16, L16>;
+def : PatLoadNoOff<zextloadi16, L16>;
 def : PatLoadNoOff<sextloadi16, LS16>;
+def : PatLoadNoOff<load, L32>;
 
+def : PatLoadShortOff<extloadi8, L8O, uimm6, AddrRegImmU6>;
 def : PatLoadShortOff<zextloadi8, L8O, uimm6, AddrRegImmU6>;
-def : PatLoadShortOff<zextloadi16, L16O, uimm7s1, AddrRegImmU7>;
-def : PatLoadShortOff<load, L32O, uimm8s2, AddrRegImmU8>;
 def : PatLoadShortOff<sextloadi8, LS8O, uimm6, AddrRegImmU6>;
+def : PatLoadShortOff<extloadi16, L16O, uimm7s1, AddrRegImmU7>;
+def : PatLoadShortOff<zextloadi16, L16O, uimm7s1, AddrRegImmU7>;
 def : PatLoadShortOff<sextloadi16, LS16O, uimm7s1, AddrRegImmU7>;
+def : PatLoadShortOff<load, L32O, uimm8s2, AddrRegImmU8>;
 
+def : PatLoadWideOff<extloadi8, L8OW, simm16, AddrRegImmS16>;
 def : PatLoadWideOff<zextloadi8, L8OW, simm16, AddrRegImmS16>;
-def : PatLoadWideOff<zextloadi16, L16OW, simm17s1, AddrRegImmS17>;
-def : PatLoadShortOff<load, L32OW, simm18s2, AddrRegImmS18>;
 def : PatLoadWideOff<sextloadi8, LS8OW, simm16, AddrRegImmS16>;
+def : PatLoadWideOff<extloadi16, L16OW, simm17s1, AddrRegImmS17>;
+def : PatLoadWideOff<zextloadi16, L16OW, simm17s1, AddrRegImmS17>;
 def : PatLoadWideOff<sextloadi16, LS16OW, simm17s1, AddrRegImmS17>;
+def : PatLoadShortOff<load, L32OW, simm18s2, AddrRegImmS18>;
 
 // ALU
 def : PatGprGpr<add, IADD>;
