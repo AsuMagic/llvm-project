@@ -459,7 +459,7 @@ def : PatLoadWideOff<sextloadi8, LS8OW, simm16, AddrRegImmS16>;
 def : PatLoadWideOff<extloadi16, L16OW, simm17s1, AddrRegImmS17>;
 def : PatLoadWideOff<zextloadi16, L16OW, simm17s1, AddrRegImmS17>;
 def : PatLoadWideOff<sextloadi16, LS16OW, simm17s1, AddrRegImmS17>;
-def : PatLoadShortOff<load, L32OW, simm18s2, AddrRegImmS18>;
+def : PatLoadWideOff<load, L32OW, simm18s2, AddrRegImmS18>;
 
 // ALU
 def : PatGprGpr<add, IADD>;
