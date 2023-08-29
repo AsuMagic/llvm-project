@@ -249,6 +249,9 @@ def simm24 : Operand<i32>, ImmLeaf<i32, [{return isInt<24>(Imm);}]> {
 // Instruction types
 //===----------------------------------------------------------------------====/
 
+
+// Loads
+
 class LoadNoOff<SmolOpcode opcode, string opcodestr>
     : SmolMemLoadInst<opcode, (outs GPR:$dst), (ins GPR:$addr),
                       opcodestr, "$addr, $dst"> {
@@ -284,6 +287,8 @@ class Load32ShortOff<SmolOpcode opcode, string opcodestr>
                                    (ins Rh2:$addr, uimm8s2:$offset),
                                    opcodestr, "$addr, $dst, $offset">;
 
+// Immediate loads
+
 class LoadSignedShortImm<SmolOpcode opcode, string opcodestr>
     : SmolImmByteLoadInst<opcode, (outs GPR:$dst), (ins simm8:$imm),
                           opcodestr, "$dst, $imm">;
@@ -291,6 +296,8 @@ class LoadSignedShortImm<SmolOpcode opcode, string opcodestr>
 class LoadSignedWideImm<SmolOpcode opcode, string opcodestr>
     : SmolImmI24LoadInst<opcode, (outs GPR:$dst), (ins simm24:$imm),
                          opcodestr, "$dst, $imm">;
+
+// ALU instructions
 
 class ALURawbRb<SmolOpcode opcode, string opcodestr>
     : SmolALUWbConstrainedRegRegInst<opcode, (outs GPR:$a_wb),
@@ -309,6 +316,8 @@ class ALURawbRimm5<SmolOpcode opcode, string opcodestr>
 class ALURwbRb<SmolOpcode opcode, string opcodestr>
     : SmolALURegRegInst<opcode, (outs GPR:$dst), (ins GPR:$a),
                         opcodestr, "$dst, $a">;
+
+// Branches
 
 class Jump<SmolOpcode opcode, string opcodestr>
     : SmolJumpRegInst<opcode, (outs), (ins GPR:$target), opcodestr, "$target">;
