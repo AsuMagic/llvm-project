@@ -24,6 +24,7 @@
 #include "llvm/MC/MCInstBuilder.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/Debug.h"
 
 using namespace llvm;
 
@@ -51,9 +52,9 @@ public:
                                    const MachineInstr *MI);
 
 private:
-  void LowerInstruction(const MachineInstr *MI, MCInst &OutMI) const;
-  MCOperand LowerOperand(const MachineOperand &MO) const;
-  MCOperand LowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym) const;
+  void lowerInstruction(const MachineInstr *MI, MCInst &OutMI) const;
+  bool lowerOperand(const MachineOperand &MO, MCOperand& MCOp) const;
+  MCOperand lowerSymbolOperand(const MachineOperand &MO, MCSymbol *Sym) const;
 };
 } // namespace llvm
 
@@ -78,59 +79,68 @@ void SmolAsmPrinter::emitInstruction(const MachineInstr *MI) {
   // TODO: should be moved to a file dedicated to pseudo expansion?
   if (MI->getOpcode() == Smol::LoadFullImm) {
     auto &Reg = MI->getOperand(0);
-    const auto Imm = MI->getOperand(1).getImm();
+    MCOperand MCOp;
+    lowerOperand(MI->getOperand(1), MCOp);
 
     EmitToStreamer(*OutStreamer, MCInstBuilder(Smol::LSIW)
                                      .addReg(Reg.getReg())
-                                     .addImm(Imm & 0x00FFFFFF));
+                                     .addImm(MCOp.getImm() & 0x00FFFFFF));
     EmitToStreamer(
         *OutStreamer,
-        MCInstBuilder(Smol::LSIH).addReg(Reg.getReg()).addImm(Imm >> 24));
+        MCInstBuilder(Smol::LSIH).addReg(Reg.getReg()).addImm(MCOp.getImm() >> 24));
     return;
   }
 
   MCInst TmpInst;
-  LowerInstruction(MI, TmpInst);
+  lowerInstruction(MI, TmpInst);
   EmitToStreamer(*OutStreamer, TmpInst);
 }
 
-void SmolAsmPrinter::LowerInstruction(const MachineInstr *MI,
+void SmolAsmPrinter::lowerInstruction(const MachineInstr *MI,
                                       MCInst &OutMI) const {
   OutMI.setOpcode(MI->getOpcode());
 
   for (const MachineOperand &MO : MI->operands()) {
-    MCOperand MCOp = LowerOperand(MO);
+    MCOperand MCOp;
+    lowerOperand(MO, MCOp);
     if (MCOp.isValid())
       OutMI.addOperand(MCOp);
   }
 }
 
-MCOperand SmolAsmPrinter::LowerOperand(const MachineOperand &MO) const {
+bool SmolAsmPrinter::lowerOperand(const MachineOperand &MO, MCOperand& MCOp) const {
   switch (MO.getType()) {
   case MachineOperand::MO_Register:
     // Ignore all implicit register operands.
     if (MO.isImplicit()) {
       break;
     }
-    return MCOperand::createReg(MO.getReg());
+    MCOp = MCOperand::createReg(MO.getReg());
+    break;
 
   case MachineOperand::MO_Immediate:
-    return MCOperand::createImm(MO.getImm());
+    MCOp = MCOperand::createImm(MO.getImm());
+    break;
 
   case MachineOperand::MO_MachineBasicBlock:
-    return LowerSymbolOperand(MO, MO.getMBB()->getSymbol());
+    MCOp = lowerSymbolOperand(MO, MO.getMBB()->getSymbol());
+    break;
 
   case MachineOperand::MO_GlobalAddress:
-    return LowerSymbolOperand(MO, getSymbol(MO.getGlobal()));
+    MCOp = lowerSymbolOperand(MO, getSymbol(MO.getGlobal()));
+    break;
 
   case MachineOperand::MO_BlockAddress:
-    return LowerSymbolOperand(MO, GetBlockAddressSymbol(MO.getBlockAddress()));
+    MCOp = lowerSymbolOperand(MO, GetBlockAddressSymbol(MO.getBlockAddress()));
+    break;
 
   case MachineOperand::MO_ExternalSymbol:
-    return LowerSymbolOperand(MO, GetExternalSymbolSymbol(MO.getSymbolName()));
+    MCOp = lowerSymbolOperand(MO, GetExternalSymbolSymbol(MO.getSymbolName()));
+    break;
 
   case MachineOperand::MO_ConstantPoolIndex:
-    return LowerSymbolOperand(MO, GetCPISymbol(MO.getIndex()));
+    MCOp = lowerSymbolOperand(MO, GetCPISymbol(MO.getIndex()));
+    break;
 
   case MachineOperand::MO_RegisterMask:
     break;
@@ -139,10 +149,10 @@ MCOperand SmolAsmPrinter::LowerOperand(const MachineOperand &MO) const {
     report_fatal_error("unknown operand type");
   }
 
-  return MCOperand();
+  return true;
 }
 
-MCOperand SmolAsmPrinter::LowerSymbolOperand(const MachineOperand &MO,
+MCOperand SmolAsmPrinter::lowerSymbolOperand(const MachineOperand &MO,
                                              MCSymbol *Sym) const {
   MCContext &Ctx = OutContext;
 

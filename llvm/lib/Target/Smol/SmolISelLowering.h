@@ -26,10 +26,13 @@ enum NodeType {
   // Start the numbering from where ISD NodeType finishes.
   FIRST_NUMBER = ISD::BUILTIN_OP_END,
 
+  LLO24,
+  LHI8,
+
   // Return
   Ret,
 };
-}
+} // namespace SmolISD
 
 class SmolSubtarget;
 

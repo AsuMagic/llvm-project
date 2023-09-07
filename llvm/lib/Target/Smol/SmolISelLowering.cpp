@@ -12,9 +12,11 @@
 //
 //===----------------------------------------------------------------------===//
 #include "SmolISelLowering.h"
+#include "MCTargetDesc/SmolBaseInfo.h"
 #include "SmolSubtarget.h"
 #include "SmolTargetMachine.h"
 #include "llvm/CodeGen/CallingConvLower.h"
+#include "llvm/CodeGen/ISDOpcodes.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
@@ -25,6 +27,7 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
 #include <cassert>
 
 using namespace llvm;
@@ -55,6 +58,18 @@ SmolTargetLowering::SmolTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::BlockAddress,  MVT::i32, Custom);
   setOperationAction(ISD::ConstantPool,  MVT::i32, Custom);
 
+  setOperationAction(ISD::BRCOND, MVT::i32, Custom);
+  setOperationAction(ISD::BR_CC, MVT::i32, Expand);
+
+  // setOperationAction(ISD::MUL, MVT::i32, Expand);
+  // setOperationAction(ISD::SDIV, MVT::i32, Expand);
+  // setOperationAction(ISD::UDIV, MVT::i32, Expand);
+  // setOperationAction(ISD::SREM, MVT::i32, Expand);
+  // setOperationAction(ISD::UREM, MVT::i32, Expand);
+
+  // setOperationAction(ISD::SMUL_LOHI, MVT::i32, Expand);
+  // setOperationAction(ISD::UMUL_LOHI, MVT::i32, Expand);
+
   // Set minimum and preferred function alignment (log2)
   setMinFunctionAlignment(Align(1));
   setPrefFunctionAlignment(Align(1));
@@ -65,6 +80,8 @@ SmolTargetLowering::SmolTargetLowering(const TargetMachine &TM,
 
 const char *SmolTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
+  case SmolISD::LLO24: return "SmolISD::LLO24";
+  case SmolISD::LHI8: return "SmolISD::LHI8";
   case SmolISD::Ret: return "SmolISD::Ret";
   default:           return NULL;
   }
@@ -427,7 +444,21 @@ SDValue SmolTargetLowering::getGlobalAddressWrapper(SDValue GA,
 
 SDValue SmolTargetLowering::
 LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const {
-  llvm_unreachable("Unsupported global address");
+  GlobalAddressSDNode *N = cast<GlobalAddressSDNode>(Op);
+  assert(N->getOffset() == 0 && "unexpected offset in global node");
+  assert(getTargetMachine().getCodeModel() == CodeModel::Small);
+
+  const GlobalValue *GV = N->getGlobal();
+  EVT Ty = Op.getValueType();
+
+  // SDValue Addr = DAG.getTargetGlobalAddress(GV, SDLoc(Op), Ty, 0);
+  // return DAG.getNode(SmolISD::LUI32, SDLoc(Op), Ty, Addr);
+
+  SDValue AddrHi = DAG.getTargetGlobalAddress(GV, SDLoc(Op), Ty, 0, SmolII::MO_HI8);
+  SDValue AddrLo = DAG.getTargetGlobalAddress(GV, SDLoc(Op), Ty, 0, SmolII::MO_LO24);
+
+  SDValue MNLo = DAG.getNode(SmolISD::LLO24, SDLoc(Op), Ty, AddrLo);
+  return DAG.getNode(SmolISD::LHI8, SDLoc(Op), Ty, MNLo, AddrHi);
 }
 
 SDValue SmolTargetLowering::

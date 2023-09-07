@@ -38,6 +38,8 @@ def RRET : Ri<13, "RRET">, DwarfRegNum<[13]>;
 def RPL  : Ri<14, "RPL">, DwarfRegNum<[14]>;
 def RPS  : Ri<15, "RPS">, DwarfRegNum<[15]>;
 
+def T : SmolReg<0, "T">;
+
 // Register classes.
 
 // The order of registers represents the preferred allocation sequence.
@@ -56,6 +58,8 @@ def Rh2 : RegisterClass<"Smol", [i32], 2,
 
 def Rl2 : RegisterClass<"Smol", [i32], 2,
     (add R0, R1, R2, R3)>;
+
+def CondFlags : RegisterClass<"Smol", [i32], 0, (add T)>;
 
 // FIXME: nothing to say RRET/RPL/RPS are not allocatable?
 

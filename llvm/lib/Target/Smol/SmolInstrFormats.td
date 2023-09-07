@@ -214,6 +214,20 @@ class SmolMemStoreInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Opcode = opcode.Value;
 }
 
+class SmolMemStore8ShortOffsetInst<SmolOpcode opcode, dag outs, dag ins,
+                                 string opcodestr, string argstr>
+    : SmolInst32<outs, ins, opcodestr, argstr, [], InstFormatR4R4E16> {
+  bits<6> offset;
+  bits<2> addr;
+  bits<2> src;
+
+  let Inst{15-10} = opcode.Value{7-2};
+  let Inst{9-4} = offset;
+  let Inst{3-2} = src;
+  let Inst{1-0} = addr;
+  let Opcode = opcode.Value;
+}
+
 class SmolMemStoreWideOffsetInst<SmolOpcode opcode, dag outs, dag ins,
                                  string opcodestr, string argstr>
     : SmolInst32<outs, ins, opcodestr, argstr, [], InstFormatR4R4E16> {
@@ -326,10 +340,11 @@ class SmolJumpLinkI28Inst<SmolOpcode opcode, dag outs, dag ins,
   let Opcode = opcode.Value;
 }
 
-class SmolJumpI12Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
+class SmolJumpCondI12Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
                       string argstr>
     : SmolInst16<outs, ins, opcodestr, argstr, [], InstFormatI12> {
   bits<12> relative_target;
+  bits<0> cond;
 
   let Inst{15-12} = opcode.Value{7-4};
   let Inst{11-0} = relative_target{11-0};
@@ -341,6 +356,7 @@ class SmolALUWbConstrainedRegRegInst<SmolOpcode opcode, dag outs, dag ins, strin
     : SmolInst16<outs, ins, opcodestr, argstr, [], InstFormatR4R4> {
   bits<4> a_dst;
   bits<4> b;
+  bits<0> cond;
 
   let Inst{15-8} = opcode.Value;
   let Inst{7-4} = b;
@@ -380,6 +396,18 @@ class SmolALURegI5Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
 
   let Inst{15-9} = opcode.Value{7-1};
   let Inst{8-4} = b_imm;
+  let Inst{3-0} = a_dst;
+  let Opcode = opcode.Value;
+}
+
+class SmolALURegI8Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
+                        string argstr>
+    : SmolInst16<outs, ins, opcodestr, argstr, [], InstFormatR4I8> {
+  bits<4> a_dst;
+  bits<8> b_imm;
+
+  let Inst{15-12} = opcode.Value{7-4};
+  let Inst{11-4} = b_imm;
   let Inst{3-0} = a_dst;
   let Opcode = opcode.Value;
 }

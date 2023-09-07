@@ -107,6 +107,16 @@ def HI8 : SDNodeXForm<imm, [{
 
 // let OperandNamespace = "SmolOp" in {
 
+def uimm1 : Operand<i32>, ImmLeaf<i32, [{return isUInt<1>(Imm);}]> {
+  // let DecoderMathod = "decodeUImmOperand<5>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (!MCOp.evaluateAsConstantImm(Imm))
+      return false;
+    return isUInt<1>(Imm);
+  }];
+}
+
 def UImm5AsmOperand : AsmOperandClass {
   let Name = "UImm5";
   let RenderMethod = "addImmOperands";
@@ -242,6 +252,36 @@ def simm24 : Operand<i32>, ImmLeaf<i32, [{return isInt<24>(Imm);}]> {
   // let OperandNamespace = "RISCVOp";
 }
 
+// FIXME: offset << 1
+def simm12_iprel : Operand<OtherVT>, ImmLeaf<i32, [{return isInt<12>(Imm);}]> {
+  // let ParserMatchClass = SImmAsmOperand<12>;
+  let EncoderMethod = "getImmOpValue";
+  let DecoderMethod = "decodeSImmOperand<12>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (MCOp.evaluateAsConstantImm(Imm))
+      return isInt<12>(Imm);
+    return MCOp.isBareSymbolRef();
+  }];
+  // let OperandType = "OPERAND_SIMM28";
+  // let OperandNamespace = "RISCVOp";
+}
+
+// FIXME: offset << 1
+def simm28_iprel : Operand<OtherVT>, ImmLeaf<i32, [{return isInt<28>(Imm);}]> {
+  // let ParserMatchClass = SImmAsmOperand<24>;
+  let EncoderMethod = "getImmOpValue";
+  let DecoderMethod = "decodeSImmOperand<28>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (MCOp.evaluateAsConstantImm(Imm))
+      return isInt<28>(Imm);
+    return MCOp.isBareSymbolRef();
+  }];
+  // let OperandType = "OPERAND_SIMM28";
+  // let OperandNamespace = "RISCVOp";
+}
+
 
 // }
 
@@ -297,6 +337,16 @@ class LoadSignedWideImm<SmolOpcode opcode, string opcodestr>
     : SmolImmI24LoadInst<opcode, (outs GPR:$dst), (ins simm24:$imm),
                          opcodestr, "$dst, $imm">;
 
+// Stores
+
+class StoreNoOff<SmolOpcode opcode, string opcodestr>
+    : SmolMemStoreInst<opcode, (outs), (ins GPR:$addr, GPR:$src),
+                       opcodestr, "$addr, $src"> {
+}
+
+class Store8ShortOff<SmolOpcode opcode, string opcodestr>
+     : SmolMemStore8ShortOffsetInst<opcode, (outs), (ins Rh2:$addr, Rl2:$src, uimm6:$offset), opcodestr, "$addr, $src, $offset">;
+
 // ALU instructions
 
 class ALURawbRb<SmolOpcode opcode, string opcodestr>
@@ -313,14 +363,37 @@ class ALURawbRimm5<SmolOpcode opcode, string opcodestr>
   let Constraints = "$a_dst = $a_wb";
 }
 
+class ALURawbImm8<SmolOpcode opcode, string opcodestr>
+    : SmolALURegI8Inst<opcode, (outs GPR:$a_wb),
+                       (ins GPR:$a_dst, uimm5:$b_imm),
+                       opcodestr, "$a_dst, $b_imm"> {
+  let Constraints = "$a_dst = $a_wb";
+}
+
 class ALURwbRb<SmolOpcode opcode, string opcodestr>
     : SmolALURegRegInst<opcode, (outs GPR:$dst), (ins GPR:$a),
                         opcodestr, "$dst, $a">;
+
+// Tests
+
+class ALUTestRaRb<SmolOpcode opcode, string opcodestr>
+    : SmolTestRegRegInst<opcode, (outs CondFlags:$cond), (ins GPR:$a, GPR:$b),
+                         opcodestr, "$cond, $a, $b">;
 
 // Branches
 
 class Jump<SmolOpcode opcode, string opcodestr>
     : SmolJumpRegInst<opcode, (outs), (ins GPR:$target), opcodestr, "$target">;
+
+class JumpLinkI28<SmolOpcode opcode, string opcodestr>
+    : SmolJumpLinkI28Inst<opcode, (outs), (ins simm28_iprel:$relative_target), opcodestr, "$relative_target">;
+
+class JumpCondI12<SmolOpcode opcode, string opcodestr>
+    : SmolJumpCondI12Inst<opcode, (outs), (ins simm12_iprel:$relative_target, CondFlags:$cond), opcodestr, "$relative_target, $cond">;
+
+
+def smol_llo24 : SDNode<"SmolISD::LLO24", SDTIntUnaryOp>;
+def smol_or_lhi8 : SDNode<"SmolISD::LHI8", SDTIntBinOp>;
 
 // Procedure return
 // TODO: where does this go in the file to be clean
@@ -354,11 +427,22 @@ class PatLoadWideOff<PatFrag LoadOp, SmolInst Inst, Operand imm, AddrRegImm addr
     : Pat<(i32 (LoadOp (addressing (i32 GPR:$rs1), imm:$imm))),
           (Inst GPR:$rs1, imm:$imm)>;
 
+class PatStoreNoOff<PatFrag StoreOp, SmolInst Inst>
+    : Pat<(StoreOp (i32 GPR:$src), (iPTR GPR:$addr)),
+          (Inst GPR:$addr, GPR:$src)>;
+
+class PatStoreShortOff<PatFrag StoreOp, SmolInst Inst, Operand imm, AddrRegImm addressing>
+    : Pat<(StoreOp (i32 GPR:$src), (addressing (i32 GPR:$addr), imm:$imm)),
+          (Inst GPR:$addr, GPR:$src, imm:$imm)>;
+
 class PatGprGpr<SDPatternOperator OpNode, SmolInst Inst>
     : Pat<(OpNode GPR:$rs1, GPR:$rs2), (Inst GPR:$rs1, GPR:$rs2)>;
 
 class PatGprImm5<SDPatternOperator OpNode, SmolInst Inst>
     : Pat<(OpNode GPR:$rs1, uimm5:$imm), (Inst GPR:$rs1, uimm5:$imm)>;
+
+class PatBr<SDPatternOperator OpNode, SmolInst Inst>
+    : Pat<(OpNode GPR:$target), (Inst GPR:$target)>;
 
 def imm32bottom6set : PatLeaf<(i32 imm), [{
   return (N->getZExtValue() & 0x3f) == 0x3f;
@@ -400,9 +484,17 @@ let mayLoad = 1, mayStore = 0 in {
   def LS16OW : Load16WideOff<OPC_LS16OW, "ls16ow">;
 }
 
+let mayLoad = 0, mayStore = 1 in {
+  def S8 : StoreNoOff<OPC_S8, "s8">;
+  def S16 : StoreNoOff<OPC_S16, "s16">;
+  def S32 : StoreNoOff<OPC_S32, "s32">;
+
+  def S8O : Store8ShortOff<OPC_S8O, "s8o">;
+}
+
 let mayLoad = 0, mayStore = 0 in {
   def LSI : LoadSignedShortImm<OPC_LSI, "lsi">;
-  def LSIH : LoadSignedShortImm<OPC_LSIH, "lsih">;
+  def LSIH : ALURawbImm8<OPC_LSIH, "lsih">;
   def LSIW : LoadSignedWideImm<OPC_LSIW, "lsiw">;
 
   def LoadFullImm: Pseudo<(outs GPR:$dst), (ins uimm32:$imm),
@@ -410,10 +502,6 @@ let mayLoad = 0, mayStore = 0 in {
 
   // FIXME: reversed ops compared to ISA def
   def LR : ALURwbRb<OPC_LR, "lr">;
-
-  let isBranch = 1 in {
-      def J : Jump<OPC_J, "j">;
-  }
 
   let isAdd = 1, isCommutable = 1 in {
       def IADD : ALURawbRb<OPC_IADD, "iadd">;
@@ -435,6 +523,15 @@ let mayLoad = 0, mayStore = 0 in {
 
   def BASR : ALURawbRb<OPC_BASR, "basr">;
   def BASRI : ALURawbRb<OPC_BASRI, "basri">;
+
+  def TLTS : ALUTestRaRb<OPC_TLTS, "tlts">;
+  def TE : ALUTestRaRb<OPC_TE, "te">;
+
+  let isBranch = 1, isTerminator = 1, isBarrier = 1 in {
+    def J : Jump<OPC_J, "j">;
+    def JALI : JumpLinkI28<OPC_JALI, "jali">;
+    def CJI : JumpCondI12<OPC_J, "c_ji">;
+  }
 
   let isReturn = 1, isBarrier = 1, isTerminator = 1 in
   def PseudoRET : Pseudo<(outs), (ins), [(smol_ret)]>,
@@ -470,6 +567,13 @@ def : PatLoadWideOff<zextloadi16, L16OW, simm17s1, AddrRegImmS17>;
 def : PatLoadWideOff<sextloadi16, LS16OW, simm17s1, AddrRegImmS17>;
 def : PatLoadWideOff<load, L32OW, simm18s2, AddrRegImmS18>;
 
+// Memory stores
+def : PatStoreNoOff<truncstorei8, S8>;
+def : PatStoreNoOff<truncstorei16, S16>;
+def : PatStoreNoOff<store, S32>;
+
+def : PatStoreShortOff<truncstorei8, S8O, uimm6, AddrRegImmU6>;
+
 // ALU
 def : PatGprGpr<add, IADD>;
 def : PatGprGpr<sub, ISUB>;
@@ -487,6 +591,10 @@ def : PatGprImm5<shiftop<sra>, BASRI>;
 def : Pat<(simm8:$imm), (LSI imm:$imm)>;
 def : Pat<(simm24:$imm), (LSIW imm:$imm)>;
 def : Pat<(uimm32:$imm), (LoadFullImm imm:$imm)>;
+// def : Pat<(smol_lui32 tglobaladdr:$imm), (LoadFullImm uimm32:$imm)>;
+
+def : Pat<(smol_llo24 tglobaladdr:$in), (LSIW tglobaladdr:$in)>;
+def : Pat<(smol_or_lhi8 GPR:$dst, tglobaladdr:$in), (LSIH GPR:$dst, tglobaladdr:$in)>;
 
 // TODO: this is 3 cycles total; prefer literal pools and iprel when possible
 // FIXME: no workies; how to specify multiple insns with 1 temp reg?
@@ -496,5 +604,21 @@ def : Pat<(uimm32:$imm), (LoadFullImm imm:$imm)>;
 // FIXME: not actually the case lol -- should the ISA clear 24 lower or not?
 // def : Pat<(i32 imm32bottom24clear:$imm), (LSIH (HI8 imm:$imm))>;
 
-// Branching
+// Branching & control flow
+def : PatBr<brind, J>;
+
+// class PatBr<SDPatternOperator OpNode, SmolInst Inst>
+//     : Pat<(OpNode GPR:$target), (Inst GPR:$target)>;
+
+def : Pat<(brcond CondFlags:$cond, bb:$dst),
+          (CJI $dst, $cond)>;
+
+def : Pat<(setlt (i32 GPR:$a), (i32 GPR:$b)), (TLTS $a, $b)>;
+def : Pat<(seteq (i32 GPR:$a), (i32 GPR:$b)), (TE $a, $b)>;
+
+// FIXME: JALI is very wrong here and will clash with function calls
+let isBarrier = 1, isBranch = 1, isTerminator = 1 in
+def PseudoBR : Pseudo<(outs), (ins simm28_iprel:$target), [(br bb:$target)]>,
+               PseudoInstExpansion<(JALI simm28_iprel:$target)>;
+
 def : InstAlias<"ret", (J RRET), 4>;

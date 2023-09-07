@@ -31,10 +31,18 @@ public:
                    const DebugLoc &DL, MCRegister DestReg, MCRegister SrcReg,
                    bool KillSrc) const override;
 
+  ArrayRef<std::pair<unsigned, const char *>>
+  getSerializableDirectMachineOperandTargetFlags() const override;
+
+  // bool analyzeBranch(MachineBasicBlock &MBB, MachineBasicBlock *&TBB,
+  //                    MachineBasicBlock *&FBB,
+  //                    SmallVectorImpl<MachineOperand> &Cond,
+  //                    bool AllowModify) const override;
+
 protected:
   const SmolSubtarget &Subtarget;
 };
 
-}
+} // namespace llvm
 
 #endif
