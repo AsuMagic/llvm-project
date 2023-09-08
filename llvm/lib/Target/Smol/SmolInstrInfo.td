@@ -573,7 +573,10 @@ let mayLoad = 0, mayStore = 0 in {
   // TODO: immediate variants
 
   let isBranch = 1, isTerminator = 1, isBarrier = 1 in {
-    def J : Jump<OPC_J, "j">;
+    let isIndirectBranch = 1 in {
+      def J : Jump<OPC_J, "j">;
+    }
+
     def JALI : JumpLinkI28<OPC_JALI, "jali">;
     def CJI : JumpCondI12<OPC_J, "c_ji">;
   }

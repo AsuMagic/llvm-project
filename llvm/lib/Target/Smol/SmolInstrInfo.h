@@ -14,7 +14,10 @@
 #define LLVM_LIB_TARGET_SMOL_SMOLINSTRINFO_H
 
 #include "SmolRegisterInfo.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
+#include "llvm/CodeGen/MachineOperand.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
+#include "llvm/IR/DebugLoc.h"
 
 #define GET_INSTRINFO_HEADER
 #include "SmolGenInstrInfo.inc"
@@ -34,10 +37,19 @@ public:
   ArrayRef<std::pair<unsigned, const char *>>
   getSerializableDirectMachineOperandTargetFlags() const override;
 
-  // bool analyzeBranch(MachineBasicBlock &MBB, MachineBasicBlock *&TBB,
-  //                    MachineBasicBlock *&FBB,
-  //                    SmallVectorImpl<MachineOperand> &Cond,
-  //                    bool AllowModify) const override;
+  MachineBasicBlock *getBranchDestBlock(const MachineInstr &MI) const override;
+
+  bool analyzeBranch(MachineBasicBlock &MBB, MachineBasicBlock *&TBB,
+                     MachineBasicBlock *&FBB,
+                     SmallVectorImpl<MachineOperand> &Cond,
+                     bool AllowModify) const override;
+
+  unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
+                        MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
+                        const DebugLoc &DL, int *BytesAdded) const override;
+
+  unsigned removeBranch(MachineBasicBlock &MBB,
+                        int *BytesRemoved) const override;
 
 protected:
   const SmolSubtarget &Subtarget;
