@@ -134,6 +134,16 @@ def uimm5 : Operand<i32>, ImmLeaf<i32, [{return isUInt<5>(Imm);}]> {
   }];
 }
 
+def imm4 : Operand<i32>, ImmLeaf<i32, [{return isInt<4>(Imm);}]> {
+  // let DecoderMathod = "decodeUImmOperand<5>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (!MCOp.evaluateAsConstantImm(Imm))
+      return false;
+    return isUInt<4>(Imm);
+  }];
+}
+
 def uimm6 : Operand<i32>, ImmLeaf<i32, [{return isUInt<6>(Imm);}]> {
   // let ParserMatchClass = UImm6AsmOperand;
   // let DecoderMathod = "decodeUImmOperand<6>";
@@ -367,7 +377,14 @@ class ALURawbRb<SmolOpcode opcode, string opcodestr>
   let Constraints = "$a_dst = $a_wb";
 }
 
-class ALURawbRimm5<SmolOpcode opcode, string opcodestr>
+class ALURawbImm4<SmolOpcode opcode, string opcodestr>
+    : SmolALURegI4Inst<opcode, (outs GPR:$a_wb),
+                       (ins GPR:$a_dst, imm4:$b_imm),
+                       opcodestr, "$a_dst, $b_imm"> {
+  let Constraints = "$a_dst = $a_wb";
+}
+
+class ALURawbImm5<SmolOpcode opcode, string opcodestr>
     : SmolALURegI5Inst<opcode, (outs GPR:$a_wb),
                        (ins GPR:$a_dst, uimm5:$b_imm),
                        opcodestr, "$a_dst, $b_imm"> {
@@ -449,8 +466,8 @@ class PatStoreShortOff<PatFrag StoreOp, SmolInst Inst, Operand imm, AddrRegImm a
 class PatGprGpr<SDPatternOperator OpNode, SmolInst Inst>
     : Pat<(OpNode GPR:$rs1, GPR:$rs2), (Inst GPR:$rs1, GPR:$rs2)>;
 
-class PatGprImm5<SDPatternOperator OpNode, SmolInst Inst>
-    : Pat<(OpNode GPR:$rs1, uimm5:$imm), (Inst GPR:$rs1, uimm5:$imm)>;
+class PatGprImm<SDPatternOperator OpNode, SmolInst Inst, Operand ImmType>
+    : Pat<(OpNode GPR:$rs1, ImmType:$imm), (Inst GPR:$rs1, ImmType:$imm)>;
 
 class PatBr<SDPatternOperator OpNode, SmolInst Inst>
     : Pat<(OpNode GPR:$target), (Inst GPR:$target)>;
@@ -515,7 +532,8 @@ let mayLoad = 0, mayStore = 0 in {
   def LR : ALURwbRb<OPC_LR, "lr">;
 
   let isAdd = 1, isCommutable = 1 in {
-      def IADD : ALURawbRb<OPC_IADD, "iadd">;
+    def IADD : ALURawbRb<OPC_IADD, "iadd">;
+    def IADDSI : ALURawbImm4<OPC_IADDSI, "iaddsi">;
   }
 
   def ISUB : ALURawbRb<OPC_ISUB, "isub">;
@@ -527,10 +545,10 @@ let mayLoad = 0, mayStore = 0 in {
   }
 
   def BSL : ALURawbRb<OPC_BSL, "bsl">;
-  def BSLI : ALURawbRimm5<OPC_BSLI, "bsli">;
+  def BSLI : ALURawbImm5<OPC_BSLI, "bsli">;
 
   def BSR : ALURawbRb<OPC_BSR, "bsr">;
-  def BSRITLSB : ALURawbRimm5<OPC_BSRITLSB, "bsri_tlsb">;
+  def BSRITLSB : ALURawbImm5<OPC_BSRITLSB, "bsri_tlsb">;
 
   def BASR : ALURawbRb<OPC_BASR, "basr">;
   def BASRI : ALURawbRb<OPC_BASRI, "basri">;
@@ -587,16 +605,17 @@ def : PatStoreShortOff<truncstorei8, S8O, uimm6, AddrRegImmU6>;
 
 // ALU
 def : PatGprGpr<add, IADD>;
+def : PatGprImm<add, IADDSI, imm4>;
 def : PatGprGpr<sub, ISUB>;
 def : PatGprGpr<and, BAND>;
 def : PatGprGpr<or, BOR>;
 def : PatGprGpr<xor, BXOR>;
 def : PatGprGpr<shiftop<shl>, BSL>;
-def : PatGprImm5<shiftop<shl>, BSLI>;
+def : PatGprImm<shiftop<shl>, BSLI, uimm5>;
 def : PatGprGpr<shiftop<srl>, BSR>;
-def : PatGprImm5<shiftop<srl>, BSRITLSB>; // FIXME: T-bit side effect!
+def : PatGprImm<shiftop<srl>, BSRITLSB, uimm5>; // FIXME: T-bit side effect!
 def : PatGprGpr<shiftop<sra>, BASR>;
-def : PatGprImm5<shiftop<sra>, BASRI>;
+def : PatGprImm<shiftop<sra>, BASRI, uimm5>;
 
 // Immediates
 def : Pat<(simm8:$imm), (LSI imm:$imm)>;
