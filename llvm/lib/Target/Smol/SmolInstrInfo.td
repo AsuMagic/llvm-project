@@ -642,6 +642,9 @@ def : Pat<(imm32:$imm), (LSIH (LSIW (LO24 imm:$imm)), (HI8 imm:$imm))>;
 def : Pat<(smol_llo24 tglobaladdr:$in), (LSIW tglobaladdr:$in)>;
 def : Pat<(smol_or_lhi8 GPR:$dst, tglobaladdr:$in), (LSIH GPR:$dst, tglobaladdr:$in)>;
 
+def : Pat<(smol_llo24 tblockaddress:$in), (LSIW tblockaddress:$in)>;
+def : Pat<(smol_or_lhi8 GPR:$dst, tblockaddress:$in), (LSIH GPR:$dst, tblockaddress:$in)>;
+
 // TODO: this is 3 cycles total; prefer literal pools and iprel when possible
 // FIXME: no workies; how to specify multiple insns with 1 temp reg?
 // def : Pat<(i32 imm:$imm), >;

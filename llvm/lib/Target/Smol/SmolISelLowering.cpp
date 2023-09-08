@@ -36,12 +36,12 @@ using namespace llvm;
 
 #define GET_REGINFO_ENUM
 #include "SmolGenRegisterInfo.inc"
+
 #include "SmolGenCallingConv.inc"
 
 SmolTargetLowering::SmolTargetLowering(const TargetMachine &TM,
                                        const SmolSubtarget &STI)
-    : TargetLowering(TM), Subtarget(STI)
-{
+    : TargetLowering(TM), Subtarget(STI) {
   addRegisterClass(MVT::i32, &Smol::GPRRegClass);
 
   computeRegisterProperties(Subtarget.getRegisterInfo());
@@ -55,8 +55,8 @@ SmolTargetLowering::SmolTargetLowering(const TargetMachine &TM,
   setBooleanVectorContents(ZeroOrOneBooleanContent);
 
   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
-  setOperationAction(ISD::BlockAddress,  MVT::i32, Custom);
-  setOperationAction(ISD::ConstantPool,  MVT::i32, Custom);
+  setOperationAction(ISD::BlockAddress, MVT::i32, Custom);
+  setOperationAction(ISD::ConstantPool, MVT::i32, Custom);
 
   setOperationAction(ISD::BRCOND, MVT::i32, Custom);
   setOperationAction(ISD::BR_CC, MVT::i32, Expand);
@@ -83,10 +83,14 @@ SmolTargetLowering::SmolTargetLowering(const TargetMachine &TM,
 
 const char *SmolTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
-  case SmolISD::LLO24: return "SmolISD::LLO24";
-  case SmolISD::LHI8: return "SmolISD::LHI8";
-  case SmolISD::Ret: return "SmolISD::Ret";
-  default:           return NULL;
+  case SmolISD::LLO24:
+    return "SmolISD::LLO24";
+  case SmolISD::LHI8:
+    return "SmolISD::LHI8";
+  case SmolISD::Ret:
+    return "SmolISD::Ret";
+  default:
+    return NULL;
   }
 }
 
@@ -104,22 +108,17 @@ void SmolTargetLowering::ReplaceNodeResults(SDNode *N,
 //===----------------------------------------------------------------------===//
 
 // The Smol2 calling convention parameter registers.
-static const MCPhysReg GPRArgRegs[] = {
-  Smol::R0, Smol::R1, Smol::R2, Smol::R3, Smol::R4, Smol::R5, Smol::R6
-};
+static const MCPhysReg GPRArgRegs[] = {Smol::R0, Smol::R1, Smol::R2, Smol::R3,
+                                       Smol::R4, Smol::R5, Smol::R6};
 
 /// LowerFormalArguments - transform physical registers into virtual registers
 /// and generate load operations for arguments places on the stack.
 SDValue SmolTargetLowering::LowerFormalArguments(
-                                    SDValue Chain,
-                                    CallingConv::ID CallConv,
-                                    bool isVarArg,
-                                    const SmallVectorImpl<ISD::InputArg> &Ins,
-                                    const SDLoc &dl, SelectionDAG &DAG,
-                                    SmallVectorImpl<SDValue> &InVals) const
-{
+    SDValue Chain, CallingConv::ID CallConv, bool isVarArg,
+    const SmallVectorImpl<ISD::InputArg> &Ins, const SDLoc &dl,
+    SelectionDAG &DAG, SmallVectorImpl<SDValue> &InVals) const {
   assert((CallingConv::C == CallConv || CallingConv::Fast == CallConv) &&
-		 "Unsupported CallingConv to FORMAL_ARGS");
+         "Unsupported CallingConv to FORMAL_ARGS");
 
   MachineFunction &MF = DAG.getMachineFunction();
   MachineFrameInfo &MFI = MF.getFrameInfo();
@@ -198,8 +197,10 @@ SDValue SmolTargetLowering::LowerFormalArguments(
       // to 32 bits.  Insert an assert[sz]ext to capture this, then
       // truncate to the right size.
       switch (VA.getLocInfo()) {
-      default: llvm_unreachable("Unknown loc info!");
-      case CCValAssign::Full: break;
+      default:
+        llvm_unreachable("Unknown loc info!");
+      case CCValAssign::Full:
+        break;
       case CCValAssign::BCvt:
         ArgValue = DAG.getNode(ISD::BITCAST, dl, VA.getValVT(), ArgValue);
         break;
@@ -225,8 +226,7 @@ SDValue SmolTargetLowering::LowerFormalArguments(
 
       // Some Ins[] entries become multiple ArgLoc[] entries.
       // Process them only once.
-      if (index != lastInsIndex)
-      {
+      if (index != lastInsIndex) {
         llvm_unreachable("Cannot retrieve arguments from the stack");
       }
     }
@@ -239,20 +239,17 @@ SDValue SmolTargetLowering::LowerFormalArguments(
 //@              Return Value Calling Convention Implementation
 //===----------------------------------------------------------------------===//
 
-bool SmolTargetLowering::CanLowerReturn(CallingConv::ID CallConv,
-                                MachineFunction &MF, bool isVarArg,
-                                const SmallVectorImpl<ISD::OutputArg> &Outs,
-                                LLVMContext &Context) const
-{
+bool SmolTargetLowering::CanLowerReturn(
+    CallingConv::ID CallConv, MachineFunction &MF, bool isVarArg,
+    const SmallVectorImpl<ISD::OutputArg> &Outs, LLVMContext &Context) const {
   SmallVector<CCValAssign, 16> RVLocs;
   CCState CCInfo(CallConv, isVarArg, MF, RVLocs, Context);
   return CCInfo.CheckReturn(Outs, RetCC_Smol);
 }
 
 /// LowerMemOpCallTo - Store the argument to the stack.
-SDValue SmolTargetLowering::LowerMemOpCallTo(SDValue Chain,
-                                             SDValue Arg, const SDLoc &dl,
-                                             SelectionDAG &DAG,
+SDValue SmolTargetLowering::LowerMemOpCallTo(SDValue Chain, SDValue Arg,
+                                             const SDLoc &dl, SelectionDAG &DAG,
                                              const CCValAssign &VA,
                                              ISD::ArgFlagsTy Flags) const {
   llvm_unreachable("Cannot store arguments to stack");
@@ -260,13 +257,11 @@ SDValue SmolTargetLowering::LowerMemOpCallTo(SDValue Chain,
 
 /// LowerCallResult - Lower the result values of a call into the
 /// appropriate copies out of appropriate physical registers.
-SDValue
-SmolTargetLowering::LowerCallResult(SDValue Chain, SDValue InFlag,
-                                    CallingConv::ID CallConv, bool isVarArg,
-                                    const SmallVectorImpl<ISD::InputArg> &Ins,
-                                    const SDLoc &dl, SelectionDAG &DAG,
-                                    SmallVectorImpl<SDValue> &InVals,
-                                    bool isThisReturn, SDValue ThisVal) const {
+SDValue SmolTargetLowering::LowerCallResult(
+    SDValue Chain, SDValue InFlag, CallingConv::ID CallConv, bool isVarArg,
+    const SmallVectorImpl<ISD::InputArg> &Ins, const SDLoc &dl,
+    SelectionDAG &DAG, SmallVectorImpl<SDValue> &InVals, bool isThisReturn,
+    SDValue ThisVal) const {
   // Assign locations to each value returned by this call.
   SmallVector<CCValAssign, 16> RVLocs;
   CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(), RVLocs,
@@ -288,17 +283,19 @@ SmolTargetLowering::LowerCallResult(SDValue Chain, SDValue InFlag,
 
     SDValue Val;
     if (VA.needsCustom()) {
-        llvm_unreachable("Vector and floating point values not supported yet");
+      llvm_unreachable("Vector and floating point values not supported yet");
     } else {
-      Val = DAG.getCopyFromReg(Chain, dl, VA.getLocReg(), VA.getLocVT(),
-                               InFlag);
+      Val =
+          DAG.getCopyFromReg(Chain, dl, VA.getLocReg(), VA.getLocVT(), InFlag);
       Chain = Val.getValue(1);
       InFlag = Val.getValue(2);
     }
 
     switch (VA.getLocInfo()) {
-    default: llvm_unreachable("Unknown loc info!");
-    case CCValAssign::Full: break;
+    default:
+      llvm_unreachable("Unknown loc info!");
+    case CCValAssign::Full:
+      break;
     case CCValAssign::BCvt:
       Val = DAG.getNode(ISD::BITCAST, dl, VA.getValVT(), Val);
       break;
@@ -311,7 +308,7 @@ SmolTargetLowering::LowerCallResult(SDValue Chain, SDValue InFlag,
 }
 
 SDValue SmolTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
-                                       SmallVectorImpl<SDValue> &InVals) const {
+                                      SmallVectorImpl<SDValue> &InVals) const {
   llvm_unreachable("Cannot lower call");
 }
 
@@ -371,8 +368,8 @@ void SmolTargetLowering::HandleByVal(CCState *State, unsigned &Size,
 }
 
 SDValue
-SmolTargetLowering::LowerReturn(SDValue Chain,
-                                CallingConv::ID CallConv, bool isVarArg,
+SmolTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
+                                bool isVarArg,
                                 const SmallVectorImpl<ISD::OutputArg> &Outs,
                                 const SmallVectorImpl<SDValue> &OutVals,
                                 const SDLoc &dl, SelectionDAG &DAG) const {
@@ -391,8 +388,7 @@ SmolTargetLowering::LowerReturn(SDValue Chain,
   RetOps.push_back(Chain); // Operand #0 = Chain (updated below)
 
   // Copy the result values into the output registers.
-  for (unsigned i = 0, realRVLocIdx = 0;
-       i != RVLocs.size();
+  for (unsigned i = 0, realRVLocIdx = 0; i != RVLocs.size();
        ++i, ++realRVLocIdx) {
     CCValAssign &VA = RVLocs[i];
     assert(VA.isRegLoc() && "Can only return in registers!");
@@ -401,8 +397,10 @@ SmolTargetLowering::LowerReturn(SDValue Chain,
     bool ReturnF16 = false;
 
     switch (VA.getLocInfo()) {
-    default: llvm_unreachable("Unknown loc info!");
-    case CCValAssign::Full: break;
+    default:
+      llvm_unreachable("Unknown loc info!");
+    case CCValAssign::Full:
+      break;
     case CCValAssign::BCvt:
       if (!ReturnF16)
         Arg = DAG.getNode(ISD::BITCAST, dl, VA.getLocVT(), Arg);
@@ -419,8 +417,8 @@ SmolTargetLowering::LowerReturn(SDValue Chain,
     // Guarantee that all emitted copies are stuck together, avoiding something
     // bad.
     Flag = Chain.getValue(1);
-    RetOps.push_back(DAG.getRegister(VA.getLocReg(),
-                                     ReturnF16 ? MVT::f16 : VA.getLocVT()));
+    RetOps.push_back(
+        DAG.getRegister(VA.getLocReg(), ReturnF16 ? MVT::f16 : VA.getLocVT()));
   }
 
   // Update chain and glue.
@@ -445,47 +443,70 @@ SDValue SmolTargetLowering::getGlobalAddressWrapper(SDValue GA,
 //  Misc Lower Operation implementation
 //===----------------------------------------------------------------------===//
 
-SDValue SmolTargetLowering::
-LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const {
-  GlobalAddressSDNode *N = cast<GlobalAddressSDNode>(Op);
-  assert(N->getOffset() == 0 && "unexpected offset in global node");
+static SDValue getTargetNode(GlobalAddressSDNode *N, const SDLoc &DL, EVT Ty,
+                             SelectionDAG &DAG, unsigned Flags) {
+  return DAG.getTargetGlobalAddress(N->getGlobal(), DL, Ty, 0, Flags);
+}
+
+static SDValue getTargetNode(BlockAddressSDNode *N, const SDLoc &DL, EVT Ty,
+                             SelectionDAG &DAG, unsigned Flags) {
+  return DAG.getTargetBlockAddress(N->getBlockAddress(), Ty, N->getOffset(),
+                                   Flags);
+}
+
+template <class NodeTy>
+SDValue SmolTargetLowering::getAddr(NodeTy *Op, SelectionDAG &DAG,
+                                    bool IsLocal) const {
+  // TODO: handle IP-relative how
+  assert(!IsLocal);
+
+  assert(Op->getOffset() == 0 && "unexpected offset");
   assert(getTargetMachine().getCodeModel() == CodeModel::Small);
 
-  const GlobalValue *GV = N->getGlobal();
-  EVT Ty = Op.getValueType();
+  EVT Ty = getPointerTy(DAG.getDataLayout());
 
-  // SDValue Addr = DAG.getTargetGlobalAddress(GV, SDLoc(Op), Ty, 0);
-  // return DAG.getNode(SmolISD::LUI32, SDLoc(Op), Ty, Addr);
-
-  SDValue AddrHi = DAG.getTargetGlobalAddress(GV, SDLoc(Op), Ty, 0, SmolII::MO_HI8);
-  SDValue AddrLo = DAG.getTargetGlobalAddress(GV, SDLoc(Op), Ty, 0, SmolII::MO_LO24);
+  SDValue AddrHi = getTargetNode(Op, SDLoc(Op), Ty, DAG, SmolII::MO_HI8);
+  SDValue AddrLo = getTargetNode(Op, SDLoc(Op), Ty, DAG, SmolII::MO_LO24);
 
   SDValue MNLo = DAG.getNode(SmolISD::LLO24, SDLoc(Op), Ty, AddrLo);
   return DAG.getNode(SmolISD::LHI8, SDLoc(Op), Ty, MNLo, AddrHi);
 }
 
-SDValue SmolTargetLowering::
-LowerConstantPool(SDValue Op, SelectionDAG &DAG) const {
+SDValue SmolTargetLowering::LowerGlobalAddress(SDValue Op,
+                                               SelectionDAG &DAG) const {
+  return getAddr(cast<GlobalAddressSDNode>(Op), DAG, /*IsLocal=*/false);
+}
+
+SDValue SmolTargetLowering::LowerConstantPool(SDValue Op,
+                                              SelectionDAG &DAG) const {
   llvm_unreachable("Unsupported constant pool");
 }
 
-SDValue SmolTargetLowering::
-LowerBlockAddress(SDValue Op, SelectionDAG &DAG) const {
-  llvm_unreachable("Unsupported block address");
+SDValue SmolTargetLowering::LowerBlockAddress(SDValue Op,
+                                              SelectionDAG &DAG) const {
+  // TODO: should be true
+  // FIXME: are block addresses only used locally in functions or do they
+  // affect functions too? is this what relaxation does
+  return getAddr(cast<BlockAddressSDNode>(Op), DAG, /*IsLocal=*/false);
 }
 
-SDValue
-SmolTargetLowering::LowerRETURNADDR(SDValue Op, SelectionDAG &DAG) const {
+SDValue SmolTargetLowering::LowerRETURNADDR(SDValue Op,
+                                            SelectionDAG &DAG) const {
   return SDValue();
 }
 
-SDValue
-SmolTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
+SDValue SmolTargetLowering::LowerOperation(SDValue Op,
+                                           SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
-  case ISD::GlobalAddress:        return LowerGlobalAddress(Op, DAG);
-  case ISD::BlockAddress:         return LowerBlockAddress(Op, DAG);
-  case ISD::ConstantPool:         return LowerConstantPool(Op, DAG);
-  case ISD::RETURNADDR:           return LowerRETURNADDR(Op, DAG);
-  default: llvm_unreachable("unimplemented operand");
+  case ISD::GlobalAddress:
+    return LowerGlobalAddress(Op, DAG);
+  case ISD::BlockAddress:
+    return LowerBlockAddress(Op, DAG);
+  case ISD::ConstantPool:
+    return LowerConstantPool(Op, DAG);
+  case ISD::RETURNADDR:
+    return LowerRETURNADDR(Op, DAG);
+  default:
+    llvm_unreachable("unimplemented operand");
   }
 }
