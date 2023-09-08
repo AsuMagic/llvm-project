@@ -416,6 +416,10 @@ class ALUTestRaRb<SmolOpcode opcode, string opcodestr>
     : SmolTestRegRegInst<opcode, (outs CondFlags:$cond), (ins GPR:$a, GPR:$b),
                          opcodestr, "$cond, $a, $b">;
 
+class ALUTestRaImm4<SmolOpcode opcode, string opcodestr>
+    : SmolTestRegI4Inst<opcode, (outs CondFlags:$cond), (ins GPR:$a, imm4:$b_imm),
+                         opcodestr, "$cond, $a, $b_imm">;
+
 // Branches
 
 class Jump<SmolOpcode opcode, string opcodestr>
@@ -529,9 +533,11 @@ let mayLoad = 0, mayStore = 1 in {
 }
 
 let mayLoad = 0, mayStore = 0 in {
-  def LSI : LoadSignedShortImm<OPC_LSI, "lsi">;
+  let isMoveImm = 1 in {
+    def LSI : LoadSignedShortImm<OPC_LSI, "lsi">;
+    def LSIW : LoadSignedWideImm<OPC_LSIW, "lsiw">;
+  }
   def LSIH : ALURawbImm8<OPC_LSIH, "lsih">;
-  def LSIW : LoadSignedWideImm<OPC_LSIW, "lsiw">;
 
   // def LoadFullImm: Pseudo<(outs GPR:$dst), (ins uimm32:$imm),
   //                         [(set GPR:$dst, imm:$imm)]>;
@@ -570,7 +576,10 @@ let mayLoad = 0, mayStore = 0 in {
   def TNE : ALUTestRaRb<OPC_TNE, "tne">;
   def TGTU : ALUTestRaRb<OPC_TGTU, "tgtu">;
   def TGTS : ALUTestRaRb<OPC_TGTS, "tgts">;
-  // TODO: immediate variants
+  def TLTSI : ALUTestRaImm4<OPC_TLTSI, "tltsi">;
+  def TGESI : ALUTestRaImm4<OPC_TGESI, "tgesi">;
+  def TEI : ALUTestRaImm4<OPC_TEI, "tei">;
+  def TNEI : ALUTestRaImm4<OPC_TNEI, "tnei">;
 
   // Unconditional branches (barrier=1)
   let isBranch = 1, isTerminator = 1, isBarrier = 1 in {
@@ -670,18 +679,24 @@ def : PatBr<brind, J>;
 def : Pat<(brcond CondFlags:$cond, bb:$dst),
           (CJI $cond, $dst)>;
 
-def : Pat<(seteq (i32 GPR:$a), (i32 GPR:$b)), (TE $a, $b)>;
-def : Pat<(setueq (i32 GPR:$a), (i32 GPR:$b)), (TE $a, $b)>;
-def : Pat<(setgt (i32 GPR:$a), (i32 GPR:$b)), (TGTS $a, $b)>;
+def : Pat<(seteq (i32 GPR:$a), (i32 GPR:$b)), (TE GPR:$a, GPR:$b)>;
+def : Pat<(setueq (i32 GPR:$a), (i32 GPR:$b)), (TE GPR:$a, GPR:$b)>;
+def : Pat<(seteq (i32 GPR:$a), imm4:$b_imm), (TEI GPR:$a, imm4:$b_imm)>;
+def : Pat<(setueq (i32 GPR:$a), imm4:$b_imm), (TEI GPR:$a, imm4:$b_imm)>;
+def : Pat<(setgt (i32 GPR:$a), (i32 GPR:$b)), (TGTS GPR:$a, GPR:$b)>;
 // TODO: setugt
-def : Pat<(setge (i32 GPR:$a), (i32 GPR:$b)), (TGES $a, $b)>;
+def : Pat<(setge (i32 GPR:$a), (i32 GPR:$b)), (TGES GPR:$a, GPR:$b)>;
+def : Pat<(setge (i32 GPR:$a), imm4:$b_imm), (TGESI GPR:$a, imm4:$b_imm)>;
 // TODO: setuge
-def : Pat<(setlt (i32 GPR:$a), (i32 GPR:$b)), (TLTS $a, $b)>;
+def : Pat<(setlt (i32 GPR:$a), (i32 GPR:$b)), (TLTS GPR:$a, GPR:$b)>;
+def : Pat<(setlt (i32 GPR:$a), imm4:$b_imm), (TLTSI GPR:$a, imm4:$b_imm)>;
 // TODO: setult
-def : Pat<(setle (i32 GPR:$a), (i32 GPR:$b)), (TGTS $b, $a)>;
+def : Pat<(setle (i32 GPR:$a), (i32 GPR:$b)), (TGTS GPR:$b, GPR:$a)>;
 // TODO: setule
-def : Pat<(setne (i32 GPR:$a), (i32 GPR:$b)), (TNE $a, $b)>;
-// TODO: setune
+def : Pat<(setne (i32 GPR:$a), (i32 GPR:$b)), (TNE GPR:$a, GPR:$b)>;
+def : Pat<(setune (i32 GPR:$a), (i32 GPR:$b)), (TNE GPR:$a, GPR:$b)>;
+def : Pat<(setne (i32 GPR:$a), imm4:$b_imm), (TNEI GPR:$a, imm4:$b_imm)>;
+def : Pat<(setune (i32 GPR:$a), imm4:$b_imm), (TNEI GPR:$a, imm4:$b_imm)>;
 
 // Conditional load
 def : Pat<(select (i32 CondFlags:$cond), GPR:$a, GPR:$b),
