@@ -316,38 +316,38 @@ def simm28_iprel : Operand<OtherVT>, ImmLeaf<i32, [{return isInt<28>(Imm);}]> {
 
 class LoadNoOff<SmolOpcode opcode, string opcodestr>
     : SmolMemLoadInst<opcode, (outs GPR:$dst), (ins GPR:$addr),
-                      opcodestr, "$addr, $dst"> {
+                      opcodestr, "*$addr, $dst"> {
 }
 
 class Load8WideOff<SmolOpcode opcode, string opcodestr>
     : SmolMemLoad8WideOffsetInst<opcode, (outs GPR:$dst),
                                  (ins GPR:$addr, simm16:$offset),
-                                 opcodestr, "$addr, $dst, $offset">;
+                                 opcodestr, "*($addr, ${offset}), $dst">;
 
 class Load16WideOff<SmolOpcode opcode, string opcodestr>
     : SmolMemLoad16WideOffsetInst<opcode, (outs GPR:$dst),
                                  (ins GPR:$addr, simm17s1:$offset),
-                                 opcodestr, "$addr, $dst, $offset">;
+                                 opcodestr, "*($addr, ${offset}), $dst">;
 
 class Load32WideOff<SmolOpcode opcode, string opcodestr>
     : SmolMemLoad32WideOffsetInst<opcode, (outs GPR:$dst),
                                  (ins GPR:$addr, simm18s2:$offset),
-                                 opcodestr, "$addr, $dst, $offset">;
+                                 opcodestr, "*($addr, ${offset}), $dst">;
 
 class Load8ShortOff<SmolOpcode opcode, string opcodestr>
     : SmolMemLoad8ShortOffsetInst<opcode, (outs Rl2:$dst),
                                   (ins Rh2:$addr, uimm6:$offset),
-                                  opcodestr, "$addr, $dst, $offset">;
+                                  opcodestr, "*($addr, ${offset}), $dst">;
 
 class Load16ShortOff<SmolOpcode opcode, string opcodestr>
     : SmolMemLoad16ShortOffsetInst<opcode, (outs Rl2:$dst),
                                    (ins Rh2:$addr, uimm7s1:$offset),
-                                   opcodestr, "$addr, $dst, $offset">;
+                                   opcodestr, "*($addr, ${offset}), $dst">;
 
 class Load32ShortOff<SmolOpcode opcode, string opcodestr>
     : SmolMemLoad32ShortOffsetInst<opcode, (outs Rl2:$dst),
                                    (ins Rh2:$addr, uimm8s2:$offset),
-                                   opcodestr, "$addr, $dst, $offset">;
+                                   opcodestr, "*($addr, ${offset}), $dst">;
 
 // Immediate loads
 
@@ -363,11 +363,14 @@ class LoadSignedWideImm<SmolOpcode opcode, string opcodestr>
 
 class StoreNoOff<SmolOpcode opcode, string opcodestr>
     : SmolMemStoreInst<opcode, (outs), (ins GPR:$addr, GPR:$src),
-                       opcodestr, "$addr, $src"> {
+                       opcodestr, "*$addr, $src"> {
 }
 
 class Store8ShortOff<SmolOpcode opcode, string opcodestr>
-     : SmolMemStore8ShortOffsetInst<opcode, (outs), (ins Rh2:$addr, Rl2:$src, uimm6:$offset), opcodestr, "$addr, $src, $offset">;
+     : SmolMemStore8ShortOffsetInst<opcode, (outs),
+                                    (ins Rh2:$addr, Rl2:$src, uimm6:$offset),
+                                    opcodestr,
+                                    "*($addr, ${offset}), $src">;
 
 // ALU instructions
 
