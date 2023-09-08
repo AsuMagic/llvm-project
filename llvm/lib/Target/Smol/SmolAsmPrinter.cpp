@@ -12,6 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "MCTargetDesc/SmolBaseInfo.h"
+#include "MCTargetDesc/SmolMCExpr.h"
 #include "SmolInstrInfo.h"
 #include "SmolTargetMachine.h"
 // #include "MCTargetDesc/SmolInstPrinter.h"
@@ -25,6 +27,7 @@
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
 
 using namespace llvm;
 
@@ -155,6 +158,21 @@ bool SmolAsmPrinter::lowerOperand(const MachineOperand &MO, MCOperand& MCOp) con
 MCOperand SmolAsmPrinter::lowerSymbolOperand(const MachineOperand &MO,
                                              MCSymbol *Sym) const {
   MCContext &Ctx = OutContext;
+  SmolMCExpr::VariantKind Kind;
+
+  switch (MO.getTargetFlags()) {
+  default:
+    llvm_unreachable("Unknown target flag on GV operand");
+  case SmolII::MO_None:
+    Kind = SmolMCExpr::VK_Smol_None;
+    break;
+  case SmolII::MO_LO24:
+    Kind = SmolMCExpr::VK_Smol_LO24;
+    break;
+  case SmolII::MO_HI8:
+    Kind = SmolMCExpr::VK_Smol_HI8;
+    break;
+  }
 
   const MCExpr *Expr =
       MCSymbolRefExpr::create(Sym, MCSymbolRefExpr::VK_None, Ctx);
@@ -162,6 +180,9 @@ MCOperand SmolAsmPrinter::lowerSymbolOperand(const MachineOperand &MO,
   if (!MO.isJTI() && !MO.isMBB() && MO.getOffset())
     Expr = MCBinaryExpr::createAdd(
         Expr, MCConstantExpr::create(MO.getOffset(), Ctx), Ctx);
+
+  if (Kind != SmolMCExpr::VK_Smol_None)
+    Expr = SmolMCExpr::create(Expr, Kind, Ctx);
 
   return MCOperand::createExpr(Expr);
 }
