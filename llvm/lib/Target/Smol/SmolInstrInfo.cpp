@@ -26,6 +26,7 @@ void SmolInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
       Smol::GPRRegClass.contains(DestReg)) {
     BuildMI(MBB, I, DL, get(Smol::LR), DestReg)
         .addReg(SrcReg, getKillRegState(SrcReg));
+    return;
   }
 
   if (Smol::CondFlagsRegClass.contains(SrcReg) ||
