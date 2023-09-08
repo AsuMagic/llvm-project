@@ -601,7 +601,7 @@ def : PatGprImm5<shiftop<sra>, BASRI>;
 // Immediates
 def : Pat<(simm8:$imm), (LSI imm:$imm)>;
 def : Pat<(simm24:$imm), (LSIW imm:$imm)>;
-def : Pat<(imm32:$imm), (LSIH (HI8 imm:$imm), (LSIW (LO24 imm:$imm)))>;
+def : Pat<(imm32:$imm), (LSIH (LSIW (LO24 imm:$imm)), (HI8 imm:$imm))>;
 // def : Pat<(smol_lui32 tglobaladdr:$imm), (LoadFullImm uimm32:$imm)>;
 
 def : Pat<(smol_llo24 tglobaladdr:$in), (LSIW tglobaladdr:$in)>;
