@@ -61,6 +61,9 @@ SmolTargetLowering::SmolTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::BRCOND, MVT::i32, Custom);
   setOperationAction(ISD::BR_CC, MVT::i32, Expand);
 
+  setOperationAction(ISD::SELECT, MVT::i32, Legal);
+  setOperationAction(ISD::SELECT_CC, MVT::i32, Expand);
+
   // setOperationAction(ISD::MUL, MVT::i32, Expand);
   // setOperationAction(ISD::SDIV, MVT::i32, Expand);
   // setOperationAction(ISD::UDIV, MVT::i32, Expand);

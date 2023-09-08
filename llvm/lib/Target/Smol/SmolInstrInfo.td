@@ -378,6 +378,13 @@ class ALURawbRb<SmolOpcode opcode, string opcodestr>
   let Constraints = "$a_dst = $a_wb";
 }
 
+class ALURawbRbCond<SmolOpcode opcode, string opcodestr>
+    : SmolALUWbConstrainedRegRegInst<opcode, (outs GPR:$a_wb),
+                                     (ins GPR:$a_dst, GPR:$b, CondFlags:$cond),
+                                     opcodestr, "$a_dst, $b, $cond"> {
+  let Constraints = "$a_dst = $a_wb";
+}
+
 class ALURawbImm4<SmolOpcode opcode, string opcodestr>
     : SmolALURegI4Inst<opcode, (outs GPR:$a_wb),
                        (ins GPR:$a_dst, imm4:$b_imm),
@@ -531,6 +538,7 @@ let mayLoad = 0, mayStore = 0 in {
 
   // FIXME: reversed ops compared to ISA def
   def LR : ALURwbRb<OPC_LR, "lr">;
+  def CLR : ALURawbRbCond<OPC_CLR, "c_lr">;
 
   let isAdd = 1, isCommutable = 1 in {
     def IADD : ALURawbRb<OPC_IADD, "iadd">;
@@ -663,6 +671,10 @@ def : Pat<(setle (i32 GPR:$a), (i32 GPR:$b)), (TGTS $b, $a)>;
 // TODO: setule
 def : Pat<(setne (i32 GPR:$a), (i32 GPR:$b)), (TNE $a, $b)>;
 // TODO: setune
+
+// Conditional load
+def : Pat<(select (i32 CondFlags:$cond), GPR:$a, GPR:$b),
+          (CLR $a, $b, $cond)>;
 
 // FIXME: JALI is very wrong here and will clash with function calls
 let isBarrier = 1, isBranch = 1, isTerminator = 1 in

@@ -28,6 +28,14 @@ void SmolInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
         .addReg(SrcReg, getKillRegState(SrcReg));
   }
 
+  if (Smol::CondFlagsRegClass.contains(SrcReg) ||
+      Smol::CondFlagsRegClass.contains(DestReg)) {
+    llvm_unreachable("Currently cannot copyPhysReg condflags");
+  }
+
+  LLVM_DEBUG(dbgs() << "SrcReg.id() == " << SrcReg.id()
+                    << ", DestReg.id() == " << DestReg.id() << '\n');
+
   llvm_unreachable("Cannot emit physreg copy instruction");
 }
 
@@ -35,8 +43,7 @@ ArrayRef<std::pair<unsigned, const char *>>
 SmolInstrInfo::getSerializableDirectMachineOperandTargetFlags() const {
   using namespace SmolII;
   static const std::pair<unsigned, const char *> TargetFlags[] = {
-      {MO_LO24, "smol-lo"},
-      {MO_HI8, "smol-hi"}};
+      {MO_LO24, "smol-lo"}, {MO_HI8, "smol-hi"}};
   return ArrayRef(TargetFlags);
 }
 
