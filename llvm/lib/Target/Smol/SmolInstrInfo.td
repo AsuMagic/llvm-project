@@ -54,11 +54,12 @@ def OPC_TGEU         : SmolOpcode<"TGEU",        0b01110110>;
 def OPC_TGES         : SmolOpcode<"TGES",        0b01110111>;
 def OPC_TE           : SmolOpcode<"TE",          0b01111000>;
 def OPC_TNE          : SmolOpcode<"TNE",         0b01111001>;
-def OPC_TLTSI        : SmolOpcode<"TLTSI",       0b01111010>;
-def OPC_TGESI        : SmolOpcode<"TGESI",       0b01111011>;
-def OPC_TEI          : SmolOpcode<"TEI",         0b01111100>;
-def OPC_TNEI         : SmolOpcode<"TNEI",        0b01111101>;
-def OPC_TBZ          : SmolOpcode<"TBZ",         0b01111110>;
+def OPC_TGTU         : SmolOpcode<"TGTU",        0b01111010>;
+def OPC_TGTS         : SmolOpcode<"TGTS",        0b01111011>;
+def OPC_TLTSI        : SmolOpcode<"TLTSI",       0b01111100>;
+def OPC_TGESI        : SmolOpcode<"TGESI",       0b01111101>;
+def OPC_TEI          : SmolOpcode<"TEI",         0b01111110>;
+def OPC_TNEI         : SmolOpcode<"TNEI",        0b01111111>;
 def OPC_PLL32        : SmolOpcode<"PLL32",       0b10000000>;
 def OPC_J            : SmolOpcode<"J",           0b10010000>;
 def OPC_CJ           : SmolOpcode<"CJ",          0b10010001>;
@@ -553,8 +554,15 @@ let mayLoad = 0, mayStore = 0 in {
   def BASR : ALURawbRb<OPC_BASR, "basr">;
   def BASRI : ALURawbRb<OPC_BASRI, "basri">;
 
+  def TLTU : ALUTestRaRb<OPC_TLTU, "tltu">;
   def TLTS : ALUTestRaRb<OPC_TLTS, "tlts">;
+  def TGEU : ALUTestRaRb<OPC_TGEU, "tgeu">;
+  def TGES : ALUTestRaRb<OPC_TGES, "tges">;
   def TE : ALUTestRaRb<OPC_TE, "te">;
+  def TNE : ALUTestRaRb<OPC_TNE, "tne">;
+  def TGTU : ALUTestRaRb<OPC_TGTU, "tgtu">;
+  def TGTS : ALUTestRaRb<OPC_TGTS, "tgts">;
+  // TODO: immediate variants
 
   let isBranch = 1, isTerminator = 1, isBarrier = 1 in {
     def J : Jump<OPC_J, "j">;
@@ -643,8 +651,18 @@ def : PatBr<brind, J>;
 def : Pat<(brcond CondFlags:$cond, bb:$dst),
           (CJI $dst, $cond)>;
 
-def : Pat<(setlt (i32 GPR:$a), (i32 GPR:$b)), (TLTS $a, $b)>;
 def : Pat<(seteq (i32 GPR:$a), (i32 GPR:$b)), (TE $a, $b)>;
+def : Pat<(setueq (i32 GPR:$a), (i32 GPR:$b)), (TE $a, $b)>;
+def : Pat<(setgt (i32 GPR:$a), (i32 GPR:$b)), (TGTS $a, $b)>;
+// TODO: setugt
+def : Pat<(setge (i32 GPR:$a), (i32 GPR:$b)), (TGES $a, $b)>;
+// TODO: setuge
+def : Pat<(setlt (i32 GPR:$a), (i32 GPR:$b)), (TLTS $a, $b)>;
+// TODO: setult
+def : Pat<(setle (i32 GPR:$a), (i32 GPR:$b)), (TGTS $b, $a)>;
+// TODO: setule
+def : Pat<(setne (i32 GPR:$a), (i32 GPR:$b)), (TNE $a, $b)>;
+// TODO: setune
 
 // FIXME: JALI is very wrong here and will clash with function calls
 let isBarrier = 1, isBranch = 1, isTerminator = 1 in
