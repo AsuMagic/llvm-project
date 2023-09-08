@@ -40,7 +40,7 @@ public:
   static const SmolMCExpr *create(const MCExpr *Expr, VariantKind Kind,
                                   MCContext &Ctx);
 
-  VariantKind getKind() const { return Kind; }
+  VariantKind getVariantKind() const { return Kind; }
 
   const MCExpr *getSubExpr() const { return Expr; }
 

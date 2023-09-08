@@ -180,6 +180,17 @@ def uimm32 : Operand<i32>, ImmLeaf<i32, [{return isUInt<32>(Imm);}]> {
   }];
 }
 
+def imm32 : Operand<i32>, ImmLeaf<i32, [{return isInt<32>(Imm);}]> {
+  // let ParserMatchClass = UImm32AsmOperand;
+  // let DecoderMathod = "decodeUImmOperand<32>";
+  let MCOperandPredicate = [{
+    int64_t Imm;
+    if (!MCOp.evaluateAsConstantImm(Imm))
+      return false;
+    return isInt<32>(Imm);
+  }];
+}
+
 def simm8 : Operand<i32>, ImmLeaf<i32, [{return isInt<8>(Imm);}]> {
   // let ParserMatchClass = SImmAsmOperand<8>;
   let EncoderMethod = "getImmOpValue";
@@ -497,8 +508,8 @@ let mayLoad = 0, mayStore = 0 in {
   def LSIH : ALURawbImm8<OPC_LSIH, "lsih">;
   def LSIW : LoadSignedWideImm<OPC_LSIW, "lsiw">;
 
-  def LoadFullImm: Pseudo<(outs GPR:$dst), (ins uimm32:$imm),
-                          [(set GPR:$dst, imm:$imm)]>;
+  // def LoadFullImm: Pseudo<(outs GPR:$dst), (ins uimm32:$imm),
+  //                         [(set GPR:$dst, imm:$imm)]>;
 
   // FIXME: reversed ops compared to ISA def
   def LR : ALURwbRb<OPC_LR, "lr">;
@@ -590,7 +601,7 @@ def : PatGprImm5<shiftop<sra>, BASRI>;
 // Immediates
 def : Pat<(simm8:$imm), (LSI imm:$imm)>;
 def : Pat<(simm24:$imm), (LSIW imm:$imm)>;
-def : Pat<(uimm32:$imm), (LoadFullImm imm:$imm)>;
+def : Pat<(imm32:$imm), (LSIH (HI8 imm:$imm), (LSIW (LO24 imm:$imm)))>;
 // def : Pat<(smol_lui32 tglobaladdr:$imm), (LoadFullImm uimm32:$imm)>;
 
 def : Pat<(smol_llo24 tglobaladdr:$in), (LSIW tglobaladdr:$in)>;

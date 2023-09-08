@@ -80,19 +80,19 @@ void SmolAsmPrinter::emitInstruction(const MachineInstr *MI) {
     return;
 
   // TODO: should be moved to a file dedicated to pseudo expansion?
-  if (MI->getOpcode() == Smol::LoadFullImm) {
-    auto &Reg = MI->getOperand(0);
-    MCOperand MCOp;
-    lowerOperand(MI->getOperand(1), MCOp);
+  // if (MI->getOpcode() == Smol::LoadFullImm) {
+  //   auto &Reg = MI->getOperand(0);
+  //   MCOperand MCOp;
+  //   lowerOperand(MI->getOperand(1), MCOp);
 
-    EmitToStreamer(*OutStreamer, MCInstBuilder(Smol::LSIW)
-                                     .addReg(Reg.getReg())
-                                     .addImm(MCOp.getImm() & 0x00FFFFFF));
-    EmitToStreamer(
-        *OutStreamer,
-        MCInstBuilder(Smol::LSIH).addReg(Reg.getReg()).addImm(MCOp.getImm() >> 24));
-    return;
-  }
+  //   EmitToStreamer(*OutStreamer, MCInstBuilder(Smol::LSIW)
+  //                                    .addReg(Reg.getReg())
+  //                                    .addImm(MCOp.getImm() & 0x00FFFFFF));
+  //   EmitToStreamer(
+  //       *OutStreamer,
+  //       MCInstBuilder(Smol::LSIH).addReg(Reg.getReg()).addImm(MCOp.getImm() >> 24));
+  //   return;
+  // }
 
   MCInst TmpInst;
   lowerInstruction(MI, TmpInst);
@@ -177,12 +177,15 @@ MCOperand SmolAsmPrinter::lowerSymbolOperand(const MachineOperand &MO,
   const MCExpr *Expr =
       MCSymbolRefExpr::create(Sym, MCSymbolRefExpr::VK_None, Ctx);
 
-  if (!MO.isJTI() && !MO.isMBB() && MO.getOffset())
+  if (!MO.isJTI() && !MO.isMBB() && MO.getOffset()) {
     Expr = MCBinaryExpr::createAdd(
         Expr, MCConstantExpr::create(MO.getOffset(), Ctx), Ctx);
+  }
 
-  if (Kind != SmolMCExpr::VK_Smol_None)
-    Expr = SmolMCExpr::create(Expr, Kind, Ctx);
+  if (Kind != SmolMCExpr::VK_Smol_None) {
+    const SmolMCExpr *MCE = SmolMCExpr::create(Expr, Kind, Ctx);
+    Expr = MCE;
+  }
 
   return MCOperand::createExpr(Expr);
 }

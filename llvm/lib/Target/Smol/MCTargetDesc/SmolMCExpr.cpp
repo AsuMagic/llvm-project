@@ -31,11 +31,11 @@ const SmolMCExpr *SmolMCExpr::create(const MCExpr *Expr, VariantKind Kind,
 }
 
 void SmolMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
-  VariantKind Kind = getKind();
+  VariantKind Kind = getVariantKind();
   bool HasVariant = (Kind != VK_Smol_None);
   
   if (HasVariant) {
-    OS << '%' << getVariantKindName(getKind()) << '(';
+    OS << '%' << getVariantKindName(getVariantKind()) << '(';
   }
 
   Expr->print(OS, MAI);

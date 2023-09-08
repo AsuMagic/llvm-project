@@ -14,6 +14,7 @@
 #include "SmolInstPrinter.h"
 
 #include "SmolInstrInfo.h"
+#include "SmolMCExpr.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
@@ -49,6 +50,7 @@ void SmolInstPrinter::printInst(const MCInst *MI, uint64_t Address,
   if (!printAliasInstr(MI, Address, O)) {
     printInstruction(MI, Address, O);
   }
+
   printAnnotation(O, Annot);
 }
 
