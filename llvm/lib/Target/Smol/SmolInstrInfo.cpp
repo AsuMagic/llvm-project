@@ -57,6 +57,15 @@ SmolInstrInfo::getBranchDestBlock(const MachineInstr &MI) const {
   return MI.getOperand(NumOp - 1).getMBB();
 }
 
+static void parseCondBranch(MachineInstr &LastInst, MachineBasicBlock *&Target,
+                            SmallVectorImpl<MachineOperand> &Cond) {
+  assert(LastInst.isConditionalBranch());
+
+  // brcond cond, iftrue
+  Target = LastInst.getOperand(1).getMBB();
+  Cond.push_back(LastInst.getOperand(0));
+}
+
 bool SmolInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
                                   MachineBasicBlock *&TBB,
                                   MachineBasicBlock *&FBB,
@@ -65,7 +74,8 @@ bool SmolInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
   TBB = FBB = nullptr;
   Cond.clear();
 
-  // No terminator? Fall through to the next, keep TBB/FBB null
+  // 1. If this block ends with no branches (it just falls through to its succ)
+  //    just return false, leaving TBB/FBB null.
   const MachineBasicBlock::iterator LastI = MBB.getLastNonDebugInstr();
   if (LastI == MBB.end() || !isUnpredicatedTerminator(*LastI)) {
     return false;
@@ -76,7 +86,9 @@ bool SmolInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
   assert(NumTerms > 0);
 
   // Can't do much with an indirect branch
-  if (Terms.begin()->getDesc().isIndirectBranch()) {
+  if (std::any_of(Terms.begin(), Terms.end(), [&](const MachineInstr &Term) {
+        return Term.getDesc().isIndirectBranch();
+      })) {
     return true;
   }
 
@@ -85,18 +97,33 @@ bool SmolInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     return true;
   }
 
-  // Match single unconditional branch at the end of the block,
-  // i.e. MBB always precedes TBB
+  // 2. If this block ends with only an unconditional branch, it sets TBB to be
+  //    the destination block.
   if (NumTerms == 1 && Terms.begin()->getDesc().isUnconditionalBranch()) {
     TBB = getBranchDestBlock(*Terms.begin());
     return false;
   }
 
-  // // Match single conditional branch at the end of the block
-  // // TODO: Means the block falls through?
-  // if (NumTerms == 1 && Terms.begin()->getDesc().isConditionalBranch()) {
+  // 3. If this block ends with a conditional branch and it falls through to a
+  //    successor block, it sets TBB to be the branch destination block and a
+  //    list of operands that evaluate the condition. These operands can be
+  //    passed to other TargetInstrInfo methods to create new branches.
+  if (NumTerms == 1 && Terms.begin()->getDesc().isConditionalBranch()) {
+    parseCondBranch(*Terms.begin(), TBB, Cond);
+    return false;
+  }
 
-  // }
+  // 4. If this block ends with a conditional branch followed by an
+  //    unconditional branch, it returns the 'true' destination in TBB, the
+  //    'false' destination in FBB, and a list of operands that evaluate the
+  //    condition.  These operands can be passed to other TargetInstrInfo
+  //    methods to create new branches.
+  if (NumTerms == 2 && Terms.begin()->getDesc().isConditionalBranch() &&
+      std::next(Terms.begin())->getDesc().isUnconditionalBranch()) {
+    parseCondBranch(*Terms.begin(), TBB, Cond);
+    FBB = getBranchDestBlock(*std::next(Terms.begin()));
+    return false;
+  }
 
   // Unknown branch type at this point
   return true;
@@ -110,9 +137,11 @@ unsigned SmolInstrInfo::insertBranch(
   }
 
   assert(TBB && "insertBranch must not be told to insert a fallthrough");
-  assert(Cond.size() == 0);
+  assert(/* Uncond branch */ Cond.size() == 0 ||
+         /* Cond branch where Cond={predicate} */ Cond.size() == 1);
 
   if (Cond.empty()) {
+    // Emit unconditional branch to the TBB
     MachineInstr &MI = *BuildMI(&MBB, DL, get(Smol::PseudoBR)).addMBB(TBB);
     if (BytesAdded != nullptr) {
       *BytesAdded += getInstSizeInBytes(MI);
@@ -120,7 +149,28 @@ unsigned SmolInstrInfo::insertBranch(
     return 1;
   }
 
-  return 0;
+  // From this point on, it's a conditional op (Cond.size() == 1)
+  // Emit a conditional branch to the TBB in any case
+
+  MachineInstr &CondMI =
+      *BuildMI(&MBB, DL, get(Smol::CJI)).add(Cond[0]).addMBB(TBB);
+
+  if (BytesAdded != nullptr) {
+    *BytesAdded += getInstSizeInBytes(CondMI);
+  }
+
+  // If no FBB then the MBB just falls through
+  if (FBB == nullptr) {
+    return 1;
+  }
+
+  // Otherwise we emit a branch to the FBB
+  MachineInstr &MI = *BuildMI(&MBB, DL, get(Smol::PseudoBR)).addMBB(FBB);
+  if (BytesAdded != nullptr) {
+    *BytesAdded += getInstSizeInBytes(MI);
+  }
+
+  return 2;
 }
 
 unsigned SmolInstrInfo::removeBranch(MachineBasicBlock &MBB,

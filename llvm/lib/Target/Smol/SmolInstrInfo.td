@@ -425,7 +425,7 @@ class JumpLinkI28<SmolOpcode opcode, string opcodestr>
     : SmolJumpLinkI28Inst<opcode, (outs), (ins simm28_iprel:$relative_target), opcodestr, "$relative_target">;
 
 class JumpCondI12<SmolOpcode opcode, string opcodestr>
-    : SmolJumpCondI12Inst<opcode, (outs), (ins simm12_iprel:$relative_target, CondFlags:$cond), opcodestr, "$relative_target, $cond">;
+    : SmolJumpCondI12Inst<opcode, (outs), (ins CondFlags:$cond, simm12_iprel:$relative_target), opcodestr, "$cond, $relative_target">;
 
 
 def smol_llo24 : SDNode<"SmolISD::LLO24", SDTIntUnaryOp>;
@@ -572,12 +572,17 @@ let mayLoad = 0, mayStore = 0 in {
   def TGTS : ALUTestRaRb<OPC_TGTS, "tgts">;
   // TODO: immediate variants
 
+  // Unconditional branches (barrier=1)
   let isBranch = 1, isTerminator = 1, isBarrier = 1 in {
     let isIndirectBranch = 1 in {
       def J : Jump<OPC_J, "j">;
     }
 
     def JALI : JumpLinkI28<OPC_JALI, "jali">;
+  }
+
+  // Conditional branches (barrier=0)
+  let isBranch = 1, isTerminator = 1, isBarrier = 0 in {
     def CJI : JumpCondI12<OPC_J, "c_ji">;
   }
 
@@ -663,7 +668,7 @@ def : PatBr<brind, J>;
 //     : Pat<(OpNode GPR:$target), (Inst GPR:$target)>;
 
 def : Pat<(brcond CondFlags:$cond, bb:$dst),
-          (CJI $dst, $cond)>;
+          (CJI $cond, $dst)>;
 
 def : Pat<(seteq (i32 GPR:$a), (i32 GPR:$b)), (TE $a, $b)>;
 def : Pat<(setueq (i32 GPR:$a), (i32 GPR:$b)), (TE $a, $b)>;
