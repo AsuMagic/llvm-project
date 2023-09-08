@@ -11,8 +11,8 @@
 using namespace llvm;
 
 Target &llvm::getTheSmolTarget() {
-  static Target TheSparcTarget;
-  return TheSparcTarget;
+  static Target TheSmolTarget;
+  return TheSmolTarget;
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSmolTargetInfo() {
