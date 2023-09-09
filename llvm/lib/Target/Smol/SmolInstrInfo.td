@@ -696,7 +696,7 @@ def : Pat<(setueq (i32 GPR:$a), (i32 GPR:$b)), (TE GPR:$a, GPR:$b)>;
 def : Pat<(seteq (i32 GPR:$a), imm4:$b_imm), (TEI GPR:$a, imm4:$b_imm)>;
 def : Pat<(setueq (i32 GPR:$a), imm4:$b_imm), (TEI GPR:$a, imm4:$b_imm)>;
 def : Pat<(setgt (i32 GPR:$a), (i32 GPR:$b)), (TGTS GPR:$a, GPR:$b)>;
-def : Pat<(setugt (i32 GPR:$a), imm4:$b_imm), (TGTU GPR:$a, GPR:$b)>;
+def : Pat<(setugt (i32 GPR:$a), (i32 GPR:$b)), (TGTU GPR:$a, GPR:$b)>;
 def : Pat<(setge (i32 GPR:$a), (i32 GPR:$b)), (TGES GPR:$a, GPR:$b)>;
 def : Pat<(setge (i32 GPR:$a), imm4:$b_imm), (TGESI GPR:$a, imm4:$b_imm)>;
 def : Pat<(setuge (i32 GPR:$a), (i32 GPR:$b)), (TGEU GPR:$a, GPR:$b)>;
