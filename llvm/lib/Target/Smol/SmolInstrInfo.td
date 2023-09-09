@@ -642,10 +642,11 @@ def : PatStoreNoOff<truncstorei16, S16>;
 def : PatStoreNoOff<store, S32>;
 
 def : PatStoreShortOff<truncstorei8, S8O, uimm6, AddrRegImmU6>;
-// TODO: S16O
-// TODO: S32O
-// TODO: S16OW
-// TODO: S32OW
+// def : PatStoreShortOff<truncstorei16, S16O, uimm7s1, AddrRegImmU7>;
+// def : PatStoreShortOff<store, S32O, uimm8s2, AddrRegImmU8>;
+// def : PatStoreShortOff<truncstorei8, S8OW, uimm16, AddrRegImmU16>;
+// def : PatStoreShortOff<truncstorei16, S16OW, uimm17s1, AddrRegImm17>;
+// def : PatStoreShortOff<store, S32OW, uimm18s2, AddrRegImm18>;
 
 // ALU
 def : PatGprGpr<add, IADD>;
