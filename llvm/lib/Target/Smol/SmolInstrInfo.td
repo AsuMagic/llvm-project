@@ -542,11 +542,15 @@ let mayLoad = 0, mayStore = 0 in {
   }
   def LSIH : ALURawbImm8<OPC_LSIH, "lsih">;
 
+  // TODO: LIPREL?
+
   // def LoadFullImm: Pseudo<(outs GPR:$dst), (ins uimm32:$imm),
   //                         [(set GPR:$dst, imm:$imm)]>;
 
   // FIXME: reversed ops compared to ISA def
-  def LR : ALURwbRb<OPC_LR, "lr">;
+  let isMoveReg = 1 in {
+    def LR : ALURwbRb<OPC_LR, "lr">;
+  }
   def CLR : ALURawbRbCond<OPC_CLR, "c_lr">;
 
   let isAdd = 1, isCommutable = 1 in {
@@ -638,10 +642,16 @@ def : PatStoreNoOff<truncstorei16, S16>;
 def : PatStoreNoOff<store, S32>;
 
 def : PatStoreShortOff<truncstorei8, S8O, uimm6, AddrRegImmU6>;
+// TODO: S16O
+// TODO: S32O
+// TODO: S16OW
+// TODO: S32OW
 
 // ALU
 def : PatGprGpr<add, IADD>;
 def : PatGprImm<add, IADDSI, imm4>;
+// TODO: ADDSIW
+// TODO: ADDSI_TNZ
 def : PatGprGpr<sub, ISUB>;
 def : PatGprGpr<and, BAND>;
 def : PatGprGpr<or, BOR>;
@@ -675,9 +685,8 @@ def : Pat<(smol_or_lhi8 GPR:$dst, tblockaddress:$in), (LSIH GPR:$dst, tblockaddr
 
 // Branching & control flow
 def : PatBr<brind, J>;
-
-// class PatBr<SDPatternOperator OpNode, SmolInst Inst>
-//     : Pat<(OpNode GPR:$target), (Inst GPR:$target)>;
+// TODO: C_J: conditional indirect jump -- does this everh appen, and how?
+// TODO: JAL
 
 def : Pat<(brcond CondFlags:$cond, bb:$dst),
           (CJI $cond, $dst)>;
@@ -711,3 +720,9 @@ def PseudoBR : Pseudo<(outs), (ins simm28_iprel:$target), [(br bb:$target)]>,
                PseudoInstExpansion<(JALI simm28_iprel:$target)>;
 
 def : InstAlias<"ret", (J RRET), 4>;
+
+// Misc.
+
+// TODO: INTON, INTOFF, INTRET, INTWAIT
+// TODO: BRK
+// TODO: PLL32 & constant pools
