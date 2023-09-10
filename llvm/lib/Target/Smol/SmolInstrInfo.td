@@ -156,27 +156,25 @@ def uimm6 : Operand<i32>, ImmLeaf<i32, [{return isUInt<6>(Imm);}]> {
   }];
 }
 
-def uimm7s1 : Operand<i32>, ImmLeaf<i32,
-    [{return isUInt<7>(Imm) && (Imm % 2) == 0;}]> {
-  // let ParserMatchClass = UImm6AsmOperand;
-  // let DecoderMathod = "decodeUImmOperand<6>";
+def uimm6align2 : Operand<i32> {
+  let EncoderMethod = "getUImmOpValueAsr<1>";
+  let DecoderMethod = "decodeUImmOperandAndLsl<6, 1>";
   let MCOperandPredicate = [{
     int64_t Imm;
-    if (!MCOp.evaluateAsConstantImm(Imm))
-      return false;
-    return isUInt<7>(Imm);
+    if (MCOp.evaluateAsConstantImm(Imm))
+      return isShiftedUInt<6, 1>(Imm);
+    return MCOp.isBareSymbolRef();
   }];
 }
 
-def uimm8s2 : Operand<i32>, ImmLeaf<i32,
-    [{return isUInt<8>(Imm) && (Imm % 4) == 0;}]> {
-  // let ParserMatchClass = UImm6AsmOperand;
-  // let DecoderMathod = "decodeUImmOperand<6>";
+def uimm6align4 : Operand<i32> {
+  let EncoderMethod = "getUImmOpValueAsr<2>";
+  let DecoderMethod = "decodeUImmOperandAndLsl<6, 2>";
   let MCOperandPredicate = [{
     int64_t Imm;
-    if (!MCOp.evaluateAsConstantImm(Imm))
-      return false;
-    return isUInt<8>(Imm);
+    if (MCOp.evaluateAsConstantImm(Imm))
+      return isShiftedUInt<6, 2>(Imm);
+    return MCOp.isBareSymbolRef();
   }];
 }
 
@@ -227,37 +225,32 @@ def simm16 : Operand<i32>, ImmLeaf<i32, [{return isInt<16>(Imm);}]> {
     return MCOp.isBareSymbolRef();
   }];
   // let OperandType = "OPERAND_SIMM24";
-  // let OperandNamespace = "RISCVOp";
 }
 
-def simm17s1 : Operand<i32>, ImmLeaf<i32,
-    [{return isInt<17>(Imm) && (Imm % 2) == 0;}]> {
+def simm16align2 : Operand<i32> {
   // let ParserMatchClass = SImmAsmOperand<24>;
-  let EncoderMethod = "getImmOpValue";
-  let DecoderMethod = "decodeSImmOperand<17>";
+  let EncoderMethod = "getImmOpValueAsr<1>";
+  let DecoderMethod = "decodeSImmOperandAndLsl<16, 1>";
   let MCOperandPredicate = [{
     int64_t Imm;
     if (MCOp.evaluateAsConstantImm(Imm))
-      return isInt<17>(Imm);
+      return isShiftedInt<16, 1>(Imm);
     return MCOp.isBareSymbolRef();
   }];
   // let OperandType = "OPERAND_SIMM24";
-  // let OperandNamespace = "RISCVOp";
 }
 
-def simm18s2 : Operand<i32>, ImmLeaf<i32,
-    [{return isInt<18>(Imm) && (Imm % 4) == 0;}]> {
+def simm16align4 : Operand<i32> {
   // let ParserMatchClass = SImmAsmOperand<24>;
-  let EncoderMethod = "getImmOpValue";
-  let DecoderMethod = "decodeSImmOperand<18>";
+  let EncoderMethod = "getImmOpValueAsr<2>";
+  let DecoderMethod = "decodeSImmOperandAndLsl<16, 2>";
   let MCOperandPredicate = [{
     int64_t Imm;
     if (MCOp.evaluateAsConstantImm(Imm))
-      return isInt<18>(Imm);
+      return isShiftedInt<16, 2>(Imm);
     return MCOp.isBareSymbolRef();
   }];
   // let OperandType = "OPERAND_SIMM24";
-  // let OperandNamespace = "RISCVOp";
 }
 
 def simm24 : Operand<i32>, ImmLeaf<i32, [{return isInt<24>(Imm);}]> {
@@ -319,35 +312,15 @@ class LoadNoOff<SmolOpcode opcode, string opcodestr>
                       opcodestr, "*$addr, $dst"> {
 }
 
-class Load8WideOff<SmolOpcode opcode, string opcodestr>
-    : SmolMemLoad8WideOffsetInst<opcode, (outs GPR:$dst),
-                                 (ins GPR:$addr, simm16:$offset),
-                                 opcodestr, "*($addr, ${offset}), $dst">;
+class LoadWideOff<SmolOpcode opcode, string opcodestr, Operand immtype>
+    : SmolMemLoadWideOffsetInst<opcode, (outs GPR:$dst),
+                                (ins GPR:$addr, immtype:$offset),
+                                opcodestr, "*($addr, ${offset}), $dst">;
 
-class Load16WideOff<SmolOpcode opcode, string opcodestr>
-    : SmolMemLoad16WideOffsetInst<opcode, (outs GPR:$dst),
-                                 (ins GPR:$addr, simm17s1:$offset),
-                                 opcodestr, "*($addr, ${offset}), $dst">;
-
-class Load32WideOff<SmolOpcode opcode, string opcodestr>
-    : SmolMemLoad32WideOffsetInst<opcode, (outs GPR:$dst),
-                                 (ins GPR:$addr, simm18s2:$offset),
-                                 opcodestr, "*($addr, ${offset}), $dst">;
-
-class Load8ShortOff<SmolOpcode opcode, string opcodestr>
-    : SmolMemLoad8ShortOffsetInst<opcode, (outs Rl2:$dst),
-                                  (ins Rh2:$addr, uimm6:$offset),
+class LoadShortOff<SmolOpcode opcode, string opcodestr, Operand immtype>
+    : SmolMemLoadShortOffsetInst<opcode, (outs Rl2:$dst),
+                                  (ins Rh2:$addr, immtype:$offset),
                                   opcodestr, "*($addr, ${offset}), $dst">;
-
-class Load16ShortOff<SmolOpcode opcode, string opcodestr>
-    : SmolMemLoad16ShortOffsetInst<opcode, (outs Rl2:$dst),
-                                   (ins Rh2:$addr, uimm7s1:$offset),
-                                   opcodestr, "*($addr, ${offset}), $dst">;
-
-class Load32ShortOff<SmolOpcode opcode, string opcodestr>
-    : SmolMemLoad32ShortOffsetInst<opcode, (outs Rl2:$dst),
-                                   (ins Rh2:$addr, uimm8s2:$offset),
-                                   opcodestr, "*($addr, ${offset}), $dst">;
 
 // Immediate loads
 
@@ -366,9 +339,15 @@ class StoreNoOff<SmolOpcode opcode, string opcodestr>
                        opcodestr, "*$addr, $src"> {
 }
 
-class Store8ShortOff<SmolOpcode opcode, string opcodestr>
-     : SmolMemStore8ShortOffsetInst<opcode, (outs),
-                                    (ins Rh2:$addr, Rl2:$src, uimm6:$offset),
+class StoreWideOff<SmolOpcode opcode, string opcodestr, Operand immtype>
+     : SmolMemStoreWideOffsetInst<opcode, (outs),
+                                  (ins GPR:$addr, GPR:$src, immtype:$offset),
+                                  opcodestr,
+                                  "*($addr, ${offset}), $src">;
+
+class StoreShortOff<SmolOpcode opcode, string opcodestr, Operand immtype>
+     : SmolMemStoreShortOffsetInst<opcode, (outs),
+                                    (ins Rh2:$addr, Rl2:$src, immtype:$offset),
                                     opcodestr,
                                     "*($addr, ${offset}), $src">;
 
@@ -450,13 +429,13 @@ def smol_ret : SDNode<"SmolISD::Ret", SDTNone,
 // Addressing modes
 class AddrRegImm<string name> : ComplexPattern<iPTR, 2, name>;
 
-def AddrRegImmU6 : AddrRegImm<"SelectAddrRegImmU6">;
-def AddrRegImmU7 : AddrRegImm<"SelectAddrRegImmU7">;
-def AddrRegImmU8 : AddrRegImm<"SelectAddrRegImmU8">;
+def AddrRegImmU6 : AddrRegImm<"selectAddrRegImmTpl<false, 6>">;
+def AddrRegImmU7 : AddrRegImm<"selectAddrRegImmTpl<false, 7>">;
+def AddrRegImmU8 : AddrRegImm<"selectAddrRegImmTpl<false, 8>">;
 
-def AddrRegImmS16 : AddrRegImm<"SelectAddrRegImmS16">;
-def AddrRegImmS17 : AddrRegImm<"SelectAddrRegImmS17">;
-def AddrRegImmS18 : AddrRegImm<"SelectAddrRegImmS18">;
+def AddrRegImmS16 : AddrRegImm<"selectAddrRegImmTpl<true, 16>">;
+def AddrRegImmS17 : AddrRegImm<"selectAddrRegImmTpl<true, 17>">;
+def AddrRegImmS18 : AddrRegImm<"selectAddrRegImmTpl<true, 18>">;
 
 class PatLoadNoOff<PatFrag LoadOp, SmolInst Inst>
     : Pat<(i32 (LoadOp (i32 GPR:$addr))),
@@ -475,6 +454,10 @@ class PatStoreNoOff<PatFrag StoreOp, SmolInst Inst>
           (Inst GPR:$addr, GPR:$src)>;
 
 class PatStoreShortOff<PatFrag StoreOp, SmolInst Inst, Operand imm, AddrRegImm addressing>
+    : Pat<(StoreOp (i32 Rl2:$src), (addressing (i32 Rh2:$addr), imm:$imm)),
+          (Inst Rh2:$addr, Rl2:$src, imm:$imm)>;
+
+class PatStoreWideOff<PatFrag StoreOp, SmolInst Inst, Operand imm, AddrRegImm addressing>
     : Pat<(StoreOp (i32 GPR:$src), (addressing (i32 GPR:$addr), imm:$imm)),
           (Inst GPR:$addr, GPR:$src, imm:$imm)>;
 
@@ -505,7 +488,7 @@ class shiftop<SDPatternOperator operator>
 //===----------------------------------------------------------------------====/
 
 let mayLoad = 1, mayStore = 0 in {
-  // Short offset:
+  // No offset:
   def L8 : LoadNoOff<OPC_L8, "l8">;
   def L16 : LoadNoOff<OPC_L16, "l16">;
   def LS8 : LoadNoOff<OPC_LS8, "ls8">;
@@ -513,18 +496,18 @@ let mayLoad = 1, mayStore = 0 in {
   def L32 : LoadNoOff<OPC_L32, "l32">;
 
   // Short offset:
-  def L8O : Load8ShortOff<OPC_L8O, "l8o">;
-  def L16O : Load16ShortOff<OPC_L16O, "l16o">;
-  def L32O : Load32ShortOff<OPC_L32O, "l32o">;
-  def LS8O : Load8ShortOff<OPC_LS8O, "ls8o">;
-  def LS16O : Load16ShortOff<OPC_LS16O, "ls16o">;
-  
+  def L8O : LoadShortOff<OPC_L8O, "l8o", uimm6>;
+  def L16O : LoadShortOff<OPC_L16O, "l16o", uimm6align2>;
+  def L32O : LoadShortOff<OPC_L32O, "l32o", uimm6align4>;
+  def LS8O : LoadShortOff<OPC_LS8O, "ls8o", uimm6>;
+  def LS16O : LoadShortOff<OPC_LS16O, "ls16o", uimm6align2>;
+
   // Wide offset:
-  def L8OW : Load8WideOff<OPC_L8OW, "l8ow">;
-  def L16OW : Load16WideOff<OPC_L16OW, "l16ow">;
-  def L32OW : Load32WideOff<OPC_L32OW, "l32ow">;
-  def LS8OW : Load8WideOff<OPC_LS8OW, "ls8ow">;
-  def LS16OW : Load16WideOff<OPC_LS16OW, "ls16ow">;
+  def L8OW : LoadWideOff<OPC_L8OW, "l8ow", simm16>;
+  def L16OW : LoadWideOff<OPC_L16OW, "l16ow", simm16align2>;
+  def L32OW : LoadWideOff<OPC_L32OW, "l32ow", simm16align4>;
+  def LS8OW : LoadWideOff<OPC_LS8OW, "ls8ow", simm16>;
+  def LS16OW : LoadWideOff<OPC_LS16OW, "ls16ow", simm16align2>;
 }
 
 let mayLoad = 0, mayStore = 1 in {
@@ -532,7 +515,13 @@ let mayLoad = 0, mayStore = 1 in {
   def S16 : StoreNoOff<OPC_S16, "s16">;
   def S32 : StoreNoOff<OPC_S32, "s32">;
 
-  def S8O : Store8ShortOff<OPC_S8O, "s8o">;
+  def S8O : StoreShortOff<OPC_S8O, "s8o", uimm6>;
+  def S16O : StoreShortOff<OPC_S16O, "s16o", uimm6align2>;
+  def S32O : StoreShortOff<OPC_S32O, "s32o", uimm6align4>;
+
+  def S8OW : StoreWideOff<OPC_S8OW, "s8ow", simm16>;
+  def S16OW : StoreWideOff<OPC_S16OW, "s16ow", simm16align2>;
+  def S32OW : StoreWideOff<OPC_S32OW, "s32ow", simm16align4>;
 }
 
 let mayLoad = 0, mayStore = 0 in {
@@ -623,18 +612,18 @@ def : PatLoadNoOff<load, L32>;
 def : PatLoadShortOff<extloadi8, L8O, uimm6, AddrRegImmU6>;
 def : PatLoadShortOff<zextloadi8, L8O, uimm6, AddrRegImmU6>;
 def : PatLoadShortOff<sextloadi8, LS8O, uimm6, AddrRegImmU6>;
-def : PatLoadShortOff<extloadi16, L16O, uimm7s1, AddrRegImmU7>;
-def : PatLoadShortOff<zextloadi16, L16O, uimm7s1, AddrRegImmU7>;
-def : PatLoadShortOff<sextloadi16, LS16O, uimm7s1, AddrRegImmU7>;
-def : PatLoadShortOff<load, L32O, uimm8s2, AddrRegImmU8>;
+def : PatLoadShortOff<extloadi16, L16O, uimm6align2, AddrRegImmU7>;
+def : PatLoadShortOff<zextloadi16, L16O, uimm6align2, AddrRegImmU7>;
+def : PatLoadShortOff<sextloadi16, LS16O, uimm6align2, AddrRegImmU7>;
+def : PatLoadShortOff<load, L32O, uimm6align4, AddrRegImmU8>;
 
 def : PatLoadWideOff<extloadi8, L8OW, simm16, AddrRegImmS16>;
 def : PatLoadWideOff<zextloadi8, L8OW, simm16, AddrRegImmS16>;
 def : PatLoadWideOff<sextloadi8, LS8OW, simm16, AddrRegImmS16>;
-def : PatLoadWideOff<extloadi16, L16OW, simm17s1, AddrRegImmS17>;
-def : PatLoadWideOff<zextloadi16, L16OW, simm17s1, AddrRegImmS17>;
-def : PatLoadWideOff<sextloadi16, LS16OW, simm17s1, AddrRegImmS17>;
-def : PatLoadWideOff<load, L32OW, simm18s2, AddrRegImmS18>;
+def : PatLoadWideOff<extloadi16, L16OW, simm16align2, AddrRegImmS17>;
+def : PatLoadWideOff<zextloadi16, L16OW, simm16align2, AddrRegImmS17>;
+def : PatLoadWideOff<sextloadi16, LS16OW, simm16align2, AddrRegImmS17>;
+def : PatLoadWideOff<load, L32OW, simm16align4, AddrRegImmS18>;
 
 // Memory stores
 def : PatStoreNoOff<truncstorei8, S8>;
@@ -642,11 +631,12 @@ def : PatStoreNoOff<truncstorei16, S16>;
 def : PatStoreNoOff<store, S32>;
 
 def : PatStoreShortOff<truncstorei8, S8O, uimm6, AddrRegImmU6>;
-// def : PatStoreShortOff<truncstorei16, S16O, uimm7s1, AddrRegImmU7>;
-// def : PatStoreShortOff<store, S32O, uimm8s2, AddrRegImmU8>;
-// def : PatStoreShortOff<truncstorei8, S8OW, uimm16, AddrRegImmU16>;
-// def : PatStoreShortOff<truncstorei16, S16OW, uimm17s1, AddrRegImm17>;
-// def : PatStoreShortOff<store, S32OW, uimm18s2, AddrRegImm18>;
+def : PatStoreShortOff<truncstorei16, S16O, uimm6align2, AddrRegImmU7>;
+def : PatStoreShortOff<store, S32O, uimm6align4, AddrRegImmU8>;
+
+def : PatStoreWideOff<truncstorei8, S8OW, simm16, AddrRegImmS16>;
+def : PatStoreWideOff<truncstorei16, S16OW, simm16align2, AddrRegImmS17>;
+def : PatStoreWideOff<store, S32OW, simm16align4, AddrRegImmS18>;
 
 // ALU
 def : PatGprGpr<add, IADD>;

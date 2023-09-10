@@ -29,7 +29,7 @@ bool SmolDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) {
   return SelectionDAGISel::runOnMachineFunction(MF);
 }
 
-bool SmolDAGToDAGISel::SelectAddrRegImm(SDValue Addr, SDValue &Base,
+bool SmolDAGToDAGISel::selectAddrRegImm(SDValue Addr, SDValue &Base,
                                         SDValue &Offset, bool SExt,
                                         int64_t TargetSize) {
   SDLoc DL(Addr);

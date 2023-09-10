@@ -17,6 +17,7 @@
 #include "SmolTargetMachine.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
+#include <cstdint>
 
 // FIXME: wtf is this include hell
 #define GET_INSTRINFO_ENUM
@@ -35,32 +36,13 @@ public:
     return "Smol2 DAG->DAG Pattern Instruction Selection";
   }
 
-  bool SelectAddrRegImm(SDValue Addr, SDValue &Base, SDValue &Offset, bool SExt,
+  bool selectAddrRegImm(SDValue Addr, SDValue &Base, SDValue &Offset, bool SExt,
                         int64_t TargetSize);
 
-  // TODO: find a wa not to require that; can we forward constants to the
-  // complex pattern function in SmolInstrFormat so that we can just give
-  // sext & target size?
-  bool SelectAddrRegImmU6(SDValue Addr, SDValue &Base, SDValue &Offset) {
-    return SelectAddrRegImm(Addr, Base, Offset, false, 6);
+  template<bool SExt, int64_t TargetSize>
+  bool selectAddrRegImmTpl(SDValue Addr, SDValue &Base, SDValue &Offset) {
+    return selectAddrRegImm(Addr, Base, Offset, SExt, TargetSize);
   }
-  bool SelectAddrRegImmU7(SDValue Addr, SDValue &Base, SDValue &Offset) {
-    return SelectAddrRegImm(Addr, Base, Offset, false, 7);
-  }
-  bool SelectAddrRegImmU8(SDValue Addr, SDValue &Base, SDValue &Offset) {
-    return SelectAddrRegImm(Addr, Base, Offset, false, 8);
-  }
-  bool SelectAddrRegImmS16(SDValue Addr, SDValue &Base, SDValue &Offset) {
-    return SelectAddrRegImm(Addr, Base, Offset, true, 16);
-  }
-  bool SelectAddrRegImmS17(SDValue Addr, SDValue &Base, SDValue &Offset) {
-    return SelectAddrRegImm(Addr, Base, Offset, true, 17);
-  }
-  bool SelectAddrRegImmS18(SDValue Addr, SDValue &Base, SDValue &Offset) {
-    return SelectAddrRegImm(Addr, Base, Offset, true, 18);
-  }
-
-  // bool SelectAddr
 
   bool runOnMachineFunction(MachineFunction &MF) override;
 
