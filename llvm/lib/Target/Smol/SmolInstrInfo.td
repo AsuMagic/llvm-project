@@ -374,6 +374,13 @@ class ALURawbImm4<SmolOpcode opcode, string opcodestr>
   let Constraints = "$a_dst = $a_wb";
 }
 
+class ALURawbImm4Twb<SmolOpcode opcode, string opcodestr>
+    : SmolALURegI4TwbInst<opcode, (outs GPR:$a_wb, CondFlags:$cond_wb),
+                         (ins GPR:$a_dst, imm4:$b_imm),
+                         opcodestr, "$a_dst, $b_imm, $cond_wb"> {
+  let Constraints = "$a_dst = $a_wb";
+}
+
 class ALURawbImm5<SmolOpcode opcode, string opcodestr>
     : SmolALURegI5Inst<opcode, (outs GPR:$a_wb),
                        (ins GPR:$a_dst, uimm5:$b_imm),
@@ -547,6 +554,9 @@ let mayLoad = 0, mayStore = 0 in {
     def IADDSI : ALURawbImm4<OPC_IADDSI, "iaddsi">;
   }
 
+  // TODO: handling isCommutable?
+  def IADDSITNZ : ALURawbImm4Twb<OPC_IADDSITNZ, "iaddsi_tnz">;
+
   def ISUB : ALURawbRb<OPC_ISUB, "isub">;
 
   let isCommutable = 1 in {
@@ -642,7 +652,8 @@ def : PatStoreWideOff<store, S32OW, simm16align4, AddrRegImmS18>;
 def : PatGprGpr<add, IADD>;
 def : PatGprImm<add, IADDSI, imm4>;
 // TODO: ADDSIW
-// TODO: ADDSI_TNZ
+// IADDSITNZ is handled by the peephole pass
+
 def : PatGprGpr<sub, ISUB>;
 def : PatGprGpr<and, BAND>;
 def : PatGprGpr<or, BOR>;

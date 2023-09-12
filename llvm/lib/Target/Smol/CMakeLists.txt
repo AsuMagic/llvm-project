@@ -25,6 +25,7 @@ add_llvm_target(SmolCodeGen
   SmolTargetMachine.cpp
   SmolTargetObjectFile.cpp
   SmolSubtarget.cpp
+  SmolPeepholeOpts.cpp
 
   LINK_COMPONENTS
   AsmPrinter

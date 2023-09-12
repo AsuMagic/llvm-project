@@ -11,6 +11,7 @@
 
 #include "SmolTargetMachine.h"
 // #include "Smol.h"
+#include "Smol.h"
 #include "SmolISelDAGToDAG.h"
 #include "SmolMachineFunction.h"
 #include "SmolSubtarget.h"
@@ -90,6 +91,7 @@ public:
   void addIRPasses() override;
   bool addInstSelector() override;
   void addPreEmitPass() override;
+  void addMachineSSAOptimization() override;
 };
 } // namespace
 
@@ -105,8 +107,16 @@ void SmolPassConfig::addIRPasses() {
 
 bool SmolPassConfig::addInstSelector() {
   addPass(new SmolDAGToDAGISel(getSmolTargetMachine(), getOptLevel()));
+
   return false;
 }
 
 void SmolPassConfig::addPreEmitPass(){
+}
+
+
+void SmolPassConfig::addMachineSSAOptimization(){
+  if (getOptLevel() != CodeGenOpt::None) {
+    addPass(createSmolPeephole());
+  }
 }

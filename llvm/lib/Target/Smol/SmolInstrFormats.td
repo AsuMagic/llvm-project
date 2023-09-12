@@ -339,6 +339,19 @@ class SmolALURegI4Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
   let Opcode = opcode.Value;
 }
 
+class SmolALURegI4TwbInst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
+                        string argstr>
+    : SmolInst16<outs, ins, opcodestr, argstr, [], InstFormatR4I4> {
+  bits<4> a_dst;
+  bits<4> b_imm;
+  bits<0> cond_wb;
+
+  let Inst{15-8} = opcode.Value;
+  let Inst{7-4} = b_imm;
+  let Inst{3-0} = a_dst;
+  let Opcode = opcode.Value;
+}
+
 class SmolALURegI5Inst<SmolOpcode opcode, dag outs, dag ins, string opcodestr,
                         string argstr>
     : SmolInst16<outs, ins, opcodestr, argstr, [], InstFormatR4I5> {

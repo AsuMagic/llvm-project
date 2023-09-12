@@ -16,12 +16,16 @@
 #define LLVM_LIB_TARGET_SMOL_SMOL_H
 
 // #include "MCTargetDesc/SmolTargetDesc.h"
+// #include "llvm/PassRegistry.h"
 #include "llvm/Target/TargetMachine.h"
 
 namespace llvm {
-  class FunctionPass;
+class FunctionPass;
+class PassRegistry;
 
-  // Declare functions to create passes here!
+FunctionPass *createSmolPeephole();
+
+void initializeSmolPeepholePass(PassRegistry &);
 
 } // namespace llvm
 
