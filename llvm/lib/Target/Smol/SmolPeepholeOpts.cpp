@@ -97,18 +97,18 @@ bool SmolPeephole::tryMergeAddTNZ(MachineFunction &MF, MachineBasicBlock &MBB,
 
   // Look up whatever instruction assigned the virtual register behind the LHS,
   // which might be the ADDSI we're looking for
-  MachineInstr *SrcMI = MRI->getUniqueVRegDef(TestLHS.getReg());
+  MachineInstr &SrcMI = *MRI->getUniqueVRegDef(TestLHS.getReg());
 
   // Match LHS source as ADDSI
-  if (SrcMI->getOpcode() != Smol::IADDSI) {
+  if (SrcMI.getOpcode() != Smol::IADDSI) {
     return false;
   }
 
-  const MachineOperand &AddOutput = SrcMI->getOperand(0);
-  const MachineOperand &AddLHS = SrcMI->getOperand(1);
-  const MachineOperand &AddRHS = SrcMI->getOperand(2);
+  const MachineOperand &AddOutput = SrcMI.getOperand(0);
+  const MachineOperand &AddLHS = SrcMI.getOperand(1);
+  const MachineOperand &AddRHS = SrcMI.getOperand(2);
 
-  MachineInstr &InsertPoint = TestMI;
+  MachineInstr &InsertPoint = SrcMI;
 
   BuildMI(*TestMI.getParent(), InsertPoint, TestMI.getDebugLoc(),
           TII->get(Smol::IADDSITNZ))
@@ -117,7 +117,7 @@ bool SmolPeephole::tryMergeAddTNZ(MachineFunction &MF, MachineBasicBlock &MBB,
       .addReg(AddLHS.getReg())
       .addImm(AddRHS.getImm());
 
-  SrcMI->eraseFromParent();
+  SrcMI.eraseFromParent();
   TestMI.eraseFromParent();
 
   return true;
